@@ -1,0 +1,21 @@
+{
+  "name": "786ai.com - Global AI Tools Hub",
+  "short_name": "786ai",
+  "description": "Discover and launch top-rated AI tools worldwide for writing, coding, images, and audio.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#090d16",
+  "theme_color": "#090d16",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2103/2103633.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2103/2103633.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
