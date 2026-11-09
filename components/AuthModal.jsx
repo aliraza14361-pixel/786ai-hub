@@ -4,15 +4,43 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
   const [isSignup, setIsSignup] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
 
   if (!isOpen) return null;
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const userData = { name: name || email.split('@')[0], email };
-    localStorage.setItem('786ai_user', JSON.stringify(userData));
+
+    const trimmedEmail = email.trim();
+    const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail);
+
+    if (!trimmedEmail || !validEmail) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+
+    if (isSignup && password.trim().length < 6) {
+      setError('Password must be at least 6 characters long.');
+      return;
+    }
+
+    const userData = {
+      name: name.trim() || trimmedEmail.split('@')[0],
+      email: trimmedEmail,
+      password: password.trim(),
+    };
+
+    try {
+      localStorage.setItem('786ai_user', JSON.stringify(userData));
+    } catch (err) {
+      console.error('Unable to save user session', err);
+    }
+
     onLoginSuccess(userData);
     onClose();
+    setError('');
+    setPassword('');
   };
 
   return (
@@ -22,36 +50,54 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
           <h3 className="text-xl font-bold text-gray-900 dark:text-white">
             {isSignup ? 'Create 786 AI Account' : 'Login to 786 AI Hub'}
           </h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 text-xl font-bold">✕</button>
+          <button type="button" onClick={onClose} className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 text-xl font-bold">✕</button>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           {isSignup && (
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Full Name</label>
-              <input 
-                type="text" 
-                required 
-                value={name} 
+              <input
+                type="text"
+                required
+                value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Ali Raza"
                 className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
               />
             </div>
           )}
+
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email Address</label>
-            <input 
-              type="email" 
-              required 
-              value={email} 
+            <input
+              type="email"
+              required
+              value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="name@example.com"
               className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
             />
           </div>
-          <button 
-            type="submit" 
+
+          {isSignup && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+          )}
+
+          {error && <p className="text-sm text-red-500">{error}</p>}
+
+          <button
+            type="submit"
             className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition"
           >
             {isSignup ? 'Sign Up' : 'Login'}
@@ -69,11 +115,15 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
             type="button"
             onClick={() => {
               const googleUser = { name: 'Ali Raza', email: 'aliraza@gmail.com', provider: 'google' };
-              localStorage.setItem('786ai_user', JSON.stringify(googleUser));
+              try {
+                localStorage.setItem('786ai_user', JSON.stringify(googleUser));
+              } catch (err) {
+                console.error('Google login save failed', err);
+              }
               onLoginSuccess(googleUser);
               onClose();
             }}
-            className="w-full mt-2 flex items-center justify-center gap-3 py-2.5 px-4 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition text-gray-700 dark:text-gray-200 font-medium text-sm"
+            className="w-full mt-2 flex items-center justify-center gap-3 py-2.5 px-4 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition text-gray-900 dark:text-white"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -87,8 +137,12 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
 
         <div className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
           {isSignup ? 'Already have an account?' : "Don't have an account?"}{' '}
-          <button 
-            onClick={() => setIsSignup(!isSignup)} 
+          <button
+            type="button"
+            onClick={() => {
+              setIsSignup(!isSignup);
+              setError('');
+            }}
             className="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline ml-1"
           >
             {isSignup ? 'Login here' : 'Sign up'}
@@ -98,3 +152,4 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
     </div>
   );
 }
+
