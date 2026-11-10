@@ -65,7 +65,7 @@ export default function ToolDirectory({ tools = [] }: { tools?: any[] }) {
                 <Link href={`/tool/${tool.slug}`} className="text-xs text-slate-400 hover:text-cyan-400 transition font-medium">
                   Details →
                 </Link>
-                <a href={tool.url} target="_blank" rel="noreferrer" className="text-xs font-bold text-cyan-400 hover:underline">
+                <a href={`/go/${tool.slug}`} target="_blank" rel="noreferrer" className="text-xs font-bold text-cyan-400 hover:underline">
                   Launch ↗
                 </a>
               </div>

@@ -84,7 +84,7 @@ export default async function ToolDetailPage({ params }: Props) {
         </div>
 
         <a
-          href={tool.url}
+          href={`/go/${tool.slug}`}
           target="_blank"
           rel="noreferrer"
           className="w-full md:w-auto text-center px-6 py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold transition shadow-lg shadow-cyan-500/20"
