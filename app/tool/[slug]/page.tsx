@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getToolBySlug, TOOLS_DATA } from '../../../lib/toolsData';
+import SocialShare from '../../../components/SocialShare';
 
 export async function generateStaticParams() {
   return TOOLS_DATA.map((tool) => ({
@@ -92,6 +93,9 @@ export default async function ToolDetailPage({ params }: Props) {
           Launch Official Tool ↗
         </a>
       </div>
+
+      {/* Social Share Bar */}
+      <SocialShare title={tool.name} slug={tool.slug} />
 
       <section className="p-6 rounded-2xl bg-slate-900/40 border border-slate-800 space-y-3">
         <h2 className="text-xl font-bold text-white">Overview</h2>
