@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getToolBySlug } from '../../../lib/toolsData';
+import { clickCounts } from '../../api/clicks/route';
 
 type Props = {
   params: Promise<{ slug: string }> | { slug: string };
@@ -13,8 +14,9 @@ export async function GET(req: Request, { params }: Props) {
     return NextResponse.redirect(new URL('/', req.url));
   }
 
-  // Future DB connection hook for click analytics counter:
-  // console.log(`[CLICK_TRACKED] Tool: ${tool.name} | Timestamp: ${new Date().toISOString()}`);
+  // Increment live click count
+  clickCounts.total = (clickCounts.total || 0) + 1;
+  clickCounts[resolvedParams.slug] = (clickCounts[resolvedParams.slug] || 0) + 1;
 
   return NextResponse.redirect(tool.url, { status: 307 });
 }
