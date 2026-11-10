@@ -1,25 +1,27 @@
 'use client';
 import { useState } from 'react';
+import Link from 'next/link';
 
 const CATEGORIES = ['All', 'Writing/LLMs', 'Image', 'Video', 'Audio', 'Coding', 'Automation'];
 
-export default function ToolDirectory({ tools }: { tools: any[] }) {
+export default function ToolDirectory({ tools = [] }: { tools?: any[] }) {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All');
 
-  const filteredTools = tools.filter((tool) => {
-    const matchesSearch = tool.name.toLowerCase().includes(search.toLowerCase()) ||
-                          tool.description.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = category === 'All' || tool.category === category;
+  const filteredTools = (tools || []).filter((tool) => {
+    const matchesSearch = tool?.name?.toLowerCase().includes(search.toLowerCase()) ||
+                          tool?.description?.toLowerCase().includes(search.toLowerCase());
+    const matchesCategory = category === 'All' || tool?.category === category;
     return matchesSearch && matchesCategory;
   });
 
   return (
     <div className="space-y-6 my-8">
+      {/* Search Input & Filter Pills */}
       <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
         <input
           type="text"
-          placeholder="Search AI tools..."
+          placeholder="Search 32+ AI tools..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full md:w-96 px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-cyan-500"
@@ -42,9 +44,10 @@ export default function ToolDirectory({ tools }: { tools: any[] }) {
         </div>
       </div>
 
+      {/* Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredTools.map((tool, idx) => (
-          <div key={idx} className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition flex flex-col justify-between">
+        {filteredTools.map((tool) => (
+          <div key={tool.slug} className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition flex flex-col justify-between">
             <div>
               <div className="flex items-center gap-3 mb-3">
                 <span className="text-2xl">{tool.icon}</span>
@@ -58,9 +61,14 @@ export default function ToolDirectory({ tools }: { tools: any[] }) {
             
             <div className="mt-4 flex items-center justify-between pt-3 border-t border-slate-800/80">
               <span className="text-xs font-medium px-2 py-0.5 rounded bg-slate-800 text-slate-300">{tool.pricing}</span>
-              <a href={tool.url} target="_blank" rel="noreferrer" className="text-xs font-bold text-cyan-400 hover:underline">
-                Launch ↗
-              </a>
+              <div className="flex items-center gap-3">
+                <Link href={`/tool/${tool.slug}`} className="text-xs text-slate-400 hover:text-cyan-400 transition font-medium">
+                  Details →
+                </Link>
+                <a href={tool.url} target="_blank" rel="noreferrer" className="text-xs font-bold text-cyan-400 hover:underline">
+                  Launch ↗
+                </a>
+              </div>
             </div>
           </div>
         ))}
