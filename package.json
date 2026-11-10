@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint"
   },
@@ -18,6 +18,8 @@
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",
+    "@types/node": "26.6.6",
+    "@types/react": "19.3.0",
     "eslint": "^9",
     "eslint-config-next": "16.4.5",
     "tailwindcss": "^4"
