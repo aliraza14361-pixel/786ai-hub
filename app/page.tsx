@@ -32,7 +32,6 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#0B0F19] text-gray-100 font-sans">
-      {/* Header */}
       <header className="border-b border-gray-800 bg-[#0F172A]/80 backdrop-blur sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -53,7 +52,6 @@ export default function HomePage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-10 space-y-10">
-        {/* Hero Section */}
         <div className="text-center space-y-4">
           <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight">
             Unleash the <span className="bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">Power of AI</span>.
@@ -63,7 +61,6 @@ export default function HomePage() {
           </p>
         </div>
 
-        {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
           <div className="bg-[#111827] border border-gray-800 rounded-xl p-4 text-center">
             <p className="text-xs text-gray-400">Affiliate Traffic</p>
@@ -83,7 +80,6 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Search & Categories */}
         <div className="space-y-4 max-w-4xl mx-auto">
           <input
             type="text"
@@ -109,7 +105,6 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Tools Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto">
           {filteredTools.map((tool) => (
             <div key={tool.id} className="bg-[#111827] border border-gray-800 hover:border-gray-700 transition rounded-xl p-6 space-y-4">
