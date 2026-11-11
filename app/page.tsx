@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { signIn, signOut, useSession } from 'next-auth/react';
 
 const TOOLS = [
   { id: 'chatgpt', name: 'ChatGPT', rating: '5.0', desc: 'Advanced AI language model for interaction, creativity, and writing.', pricing: 'Freemium', icon: '🤖', category: 'Writing/LLMs' },
@@ -21,7 +20,6 @@ const TOOLS = [
 ];
 
 export default function HomePage() {
-  const { data: session } = useSession();
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -44,21 +42,12 @@ export default function HomePage() {
           </div>
           <div className="flex items-center space-x-4">
             <a href="/admin" className="text-sm text-gray-400 hover:text-white transition">Admin</a>
-            {session ? (
-              <button 
-                onClick={() => signOut()}
-                className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
-              >
-                Sign Out
-              </button>
-            ) : (
-              <button 
-                onClick={() => signIn('google')}
-                className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
-              >
-                Sign In
-              </button>
-            )}
+            <a 
+              href="/api/auth/signin"
+              className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+            >
+              Sign In
+            </a>
           </div>
         </div>
       </header>
