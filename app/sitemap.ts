@@ -1,10 +1,9 @@
 import { MetadataRoute } from 'next';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '../lib/prisma';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://786ai-hub.vercel.app';
 
-  // Fetch all tools from Supabase via Prisma
   let tools: { id: string; updatedAt?: Date }[] = [];
   try {
     tools = await prisma.tool.findMany({
