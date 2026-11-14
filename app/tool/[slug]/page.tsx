@@ -1,3 +1,4 @@
+import ToolDetailsGuide from "../../../components/ToolDetailsGuide";
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
@@ -73,7 +74,9 @@ export default async function ToolDetailPage({ params }: Props) {
           Try {tool.name} Now ↗
         </a>
       </div>
-    </main>
+    
+      <ToolDetailsGuide tool={tool} />
+</main>
   );
 }
 
