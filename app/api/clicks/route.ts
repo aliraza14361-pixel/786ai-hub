@@ -1,17 +1,16 @@
 import { NextResponse } from 'next/server';
 
-// Global click memory counter
+export const dynamic = 'force-dynamic';
+
 export let clickCounts: Record<string, number> = {
-  total: 12840,
-  chatgpt: 1420,
-  'claude-ai': 980,
-  'cursor-editor': 1150,
+  total: 0,
 };
 
 export async function GET() {
+  const { total, ...byTool } = clickCounts;
   return NextResponse.json({
-    total: clickCounts.total || 0,
-    byTool: clickCounts,
+    total: total || 0,
+    byTool,
   });
 }
 
@@ -22,7 +21,8 @@ export async function POST(req: Request) {
       clickCounts.total = (clickCounts.total || 0) + 1;
       clickCounts[slug] = (clickCounts[slug] || 0) + 1;
     }
-    return NextResponse.json({ success: true, total: clickCounts.total });
+    const { total, ...byTool } = clickCounts;
+    return NextResponse.json({ success: true, total: total || 0, byTool });
   } catch {
     return NextResponse.json({ error: 'Failed' }, { status: 500 });
   }
