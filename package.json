@@ -4,14 +4,15 @@
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
     "dbpush": "prisma db push",
-    "seed": "tsx prisma/seed.ts"
+    "seed": "tsx prisma/seed.ts",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
-    "@prisma/client": "^7.10.1",
+    "@prisma/client": "^6.6.0",
     "@supabase/supabase-js": "^2.48.0",
     "@vercel/analytics": "^2.0.1",
     "lucide-react": "^1.70.0",
@@ -26,7 +27,7 @@
     "@types/react": "19.3.0",
     "eslint": "^9",
     "eslint-config-next": "16.4.5",
-    "prisma": "^8.0.0-rc.33",
+    "prisma": "^6.6.0",
     "tailwindcss": "^4",
     "typescript": "6.0.3"
   }

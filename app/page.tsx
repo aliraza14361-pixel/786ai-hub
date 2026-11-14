@@ -1,102 +1,58 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 
-const TOOLS = [
-  { id: 'chatgpt', name: 'ChatGPT', rating: '5.0', desc: 'Advanced AI language model for interaction, creativity, and writing.', pricing: 'Freemium', icon: '🤖', category: 'Writing/LLMs' },
-  { id: 'claude-ai', name: 'Claude AI', rating: '4.9', desc: 'Next-gen assistant by Anthropic for long-context analysis and code.', pricing: 'Freemium', icon: '🧠', category: 'Writing/LLMs' },
-  { id: 'perplexity-ai', name: 'Perplexity AI', rating: '4.8', desc: 'AI-powered live answer search engine with verifiable citations.', pricing: 'Freemium', icon: '🔍', category: 'Writing/LLMs' },
-  { id: 'jasper-ai', name: 'Jasper AI', rating: '4.7', desc: 'Enterprise-grade copywriter for blog posts and social marketing.', pricing: 'Paid', icon: '📝', category: 'Writing/LLMs' },
-  { id: 'notion-ai', name: 'Notion AI', rating: '4.8', desc: 'Integrated workspace assistant for notes, docs, and team tasks.', pricing: 'Paid', icon: '📓', category: 'Writing/LLMs' },
-  { id: 'copy-ai', name: 'Copy.ai', rating: '4.7', desc: 'GTM & marketing copywriting platform for high-converting content.', pricing: 'Freemium', icon: '✨', category: 'Writing/LLMs' },
-  { id: 'google-gemini', name: 'Google Gemini', rating: '4.9', desc: 'Multimodal AI assistant built by Google for reasoning & tasks.', pricing: 'Freemium', icon: '🎨', category: 'Writing/LLMs' },
-  { id: 'midjourney', name: 'Midjourney', rating: '4.9', desc: 'Generative AI platform for photorealistic artwork generation.', pricing: 'Paid', icon: '🎨', category: 'Image' },
-  { id: 'leonardo-ai', name: 'Leonardo AI', rating: '4.8', desc: 'Production-quality visual assets and gaming graphics creator.', pricing: 'Freemium', icon: '🖼️', category: 'Image' },
-  { id: 'stable-diffusion', name: 'Stable Diffusion', rating: '4.7', desc: 'Open-source latent image diffusion model by Stability AI.', pricing: '100% Free', icon: '🔮', category: 'Image' },
-  { id: 'flux-1-ai', name: 'FLUX.1 AI', rating: '4.9', desc: 'State-of-the-art open image model with supreme realism.', pricing: '100% Free', icon: '🧠', category: 'Image' },
-  { id: 'remove-bg', name: 'Remove.bg', rating: '4.7', desc: 'Instant AI background removal for photos in 1-click.', pricing: '100% Free', icon: '✂️', category: 'Image' },
-  { id: 'photoroom', name: 'Photoroom', rating: '4.8', desc: 'Studio-quality photo editing & product image generator.', pricing: 'Freemium', icon: '📸', category: 'Image' },
-  { id: 'canva-ai', name: 'Canva AI', rating: '4.7', desc: 'Magic Studio suites for graphic creation, presentations & edits.', pricing: 'Freemium', icon: '🎨', category: 'Image' }
+const initialTools = [
+  { id: '1', name: 'ChatGPT', slug: 'chatgpt', description: 'Advanced AI language model for interaction, creativity, and writing.', category: 'WRITING', pricing: 'FREEMIUM', rating: 5.0, websiteUrl: 'https://chatgpt.com', icon: '🤖' },
+  { id: '2', name: 'Claude AI', slug: 'claude-ai', description: 'Next-gen assistant by Anthropic for long-context analysis and code.', category: 'CODING', pricing: 'FREEMIUM', rating: 4.9, websiteUrl: 'https://claude.ai', icon: '🧠' },
+  { id: '3', name: 'Perplexity AI', slug: 'perplexity-ai', description: 'AI-powered live answer search engine with verifiable citations.', category: 'PRODUCTIVITY', pricing: 'FREEMIUM', rating: 4.8, websiteUrl: 'https://perplexity.ai', icon: '🔍' },
+  { id: '4', name: 'Midjourney', slug: 'midjourney', description: 'Generative AI platform for photorealistic artwork generation.', category: 'IMAGE', pricing: 'PAID', rating: 4.9, websiteUrl: 'https://midjourney.com', icon: '🎨' },
+  { id: '5', name: 'FLUX.1 AI', slug: 'flux-1-ai', description: 'State-of-the-art open image model with supreme realism.', category: 'IMAGE', pricing: 'FREE', rating: 4.9, websiteUrl: 'https://flux.ai', icon: '🧠' },
+  { id: '6', name: 'Remove.bg', slug: 'remove-bg', description: 'Instant AI background removal for photos in 1-click.', category: 'IMAGE', pricing: 'FREE', rating: 4.7, websiteUrl: 'https://remove.bg', icon: '✂️' },
 ];
 
 export default function HomePage() {
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [search, setSearch] = useState('');
+  const [category, setCategory] = useState('ALL');
 
-  const filteredTools = TOOLS.filter(tool => {
-    const matchesCategory = selectedCategory === 'All' || tool.category === selectedCategory;
-    const matchesSearch = tool.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          tool.desc.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  const filteredTools = useMemo(() => {
+    return initialTools.filter((tool) => {
+      const matchesSearch = tool.name.toLowerCase().includes(search.toLowerCase()) ||
+                            tool.description.toLowerCase().includes(search.toLowerCase());
+      const matchesCategory = category === 'ALL' || tool.category.toLowerCase() === category.toLowerCase();
+      return matchesSearch && matchesCategory;
+    });
+  }, [search, category]);
 
   return (
-    <div className="min-h-screen bg-[#0B0F19] text-gray-100 font-sans">
-      <header className="border-b border-gray-800 bg-[#0F172A]/80 backdrop-blur sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <span className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
-              786 AI Hub
-            </span>
-          </div>
-          <div className="flex items-center space-x-4">
-            <a href="/admin" className="text-sm text-gray-400 hover:text-white transition">Admin</a>
-            <a 
-              href="/api/auth/signin"
-              className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
-            >
-              Sign In
-            </a>
-          </div>
-        </div>
-      </header>
+    <main className="py-10 bg-slate-950 min-h-screen text-white px-4">
+      <div className="text-center mb-8 max-w-2xl mx-auto">
+        <h1 className="text-4xl font-bold mb-2">
+          Unleash the <span className="text-indigo-500">Power of AI</span>
+        </h1>
+        <p className="text-slate-400">
+          Global Tools Directory, Native Processors & Automation Studio.
+        </p>
+      </div>
 
-      <main className="max-w-7xl mx-auto px-4 py-10 space-y-10">
-        <div className="text-center space-y-4">
-          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight">
-            Unleash the <span className="bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">Power of AI</span>.
-          </h1>
-          <p className="text-gray-400 max-w-2xl mx-auto text-sm md:text-base">
-            Global Tools Directory, Native Processors & Automation Studio.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
-          <div className="bg-[#111827] border border-gray-800 rounded-xl p-4 text-center">
-            <p className="text-xs text-gray-400">Affiliate Traffic</p>
-            <p className="text-2xl font-bold text-blue-400">18.4K</p>
-          </div>
-          <div className="bg-[#111827] border border-gray-800 rounded-xl p-4 text-center">
-            <p className="text-xs text-gray-400">Unique Clicks</p>
-            <p className="text-2xl font-bold text-emerald-400">12.8K</p>
-          </div>
-          <div className="bg-[#111827] border border-gray-800 rounded-xl p-4 text-center">
-            <p className="text-xs text-gray-400">Approved Leads</p>
-            <p className="text-2xl font-bold text-indigo-400">2.6K</p>
-          </div>
-          <div className="bg-[#111827] border border-gray-800 rounded-xl p-4 text-center">
-            <p className="text-xs text-gray-400">Conversion Rate</p>
-            <p className="text-2xl font-bold text-teal-400">7.3%</p>
-          </div>
-        </div>
-
-        <div className="space-y-4 max-w-4xl mx-auto">
+      <div className="space-y-6 max-w-7xl mx-auto">
+        {/* Search Bar & Filters */}
+        <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-slate-900/50 p-4 rounded-xl border border-slate-800">
           <input
             type="text"
-            placeholder="Search 32+ AI tools..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-[#111827] border border-gray-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 transition"
+            placeholder="Search AI tools (e.g. ChatGPT, Image, Writing)..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full md:w-1/3 px-4 py-2 bg-slate-950 rounded-lg border border-slate-800 text-white focus:outline-none focus:border-indigo-500"
           />
+
           <div className="flex flex-wrap gap-2">
-            {['All', 'Writing/LLMs', 'Image', 'Video', 'Audio', 'Coding', 'Automation'].map((cat) => (
+            {['ALL', 'WRITING', 'IMAGE', 'CODING', 'PRODUCTIVITY'].map((cat) => (
               <button
                 key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-                  selectedCategory === cat
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-[#111827] text-gray-400 border border-gray-800 hover:text-white'
+                onClick={() => setCategory(cat)}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition ${
+                  category === cat ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                 }`}
               >
                 {cat}
@@ -105,30 +61,40 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto">
+        {/* Tools Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredTools.map((tool) => (
-            <div key={tool.id} className="bg-[#111827] border border-gray-800 hover:border-gray-700 transition rounded-xl p-6 space-y-4">
-              <div className="flex justify-between items-start">
-                <div className="flex items-center space-x-3">
-                  <span className="text-3xl">{tool.icon}</span>
-                  <div>
-                    <h3 className="font-bold text-lg">{tool.name}</h3>
-                    <p className="text-xs text-amber-400">★ {tool.rating}</p>
+            <div key={tool.id} className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between hover:border-indigo-500/50 transition">
+              <div>
+                <div className="flex justify-between items-start mb-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{tool.icon}</span>
+                    <div>
+                      <h3 className="font-bold text-lg text-white">{tool.name}</h3>
+                      <p className="text-xs text-yellow-400">★ {tool.rating.toFixed(1)}</p>
+                    </div>
                   </div>
+                  <span className="text-xs font-medium px-2 py-1 bg-indigo-950 text-indigo-400 border border-indigo-800/40 rounded">
+                    {tool.pricing}
+                  </span>
                 </div>
-                <span className="text-xs bg-gray-800 text-gray-300 px-2.5 py-1 rounded-full border border-gray-700">
-                  {tool.pricing}
-                </span>
+                <p className="text-slate-400 text-sm line-clamp-2">{tool.description}</p>
               </div>
-              <p className="text-sm text-gray-400 leading-relaxed">{tool.desc}</p>
-              <div className="flex justify-end space-x-4 text-xs font-medium pt-2 border-t border-gray-800/60">
-                <button className="text-gray-400 hover:text-white transition">Details →</button>
-                <button className="text-blue-400 hover:text-blue-300 transition">Launch ↗</button>
+
+              <div className="mt-5 pt-4 border-t border-slate-800/80 flex gap-2">
+                <a
+                  href={tool.websiteUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full text-center py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition"
+                >
+                  Visit Site ↗
+                </a>
               </div>
             </div>
           ))}
         </div>
-      </main>
-    </div>
+      </div>
+    </main>
   );
 }
