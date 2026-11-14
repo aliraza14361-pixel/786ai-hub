@@ -10,9 +10,18 @@ const INITIAL_SUBMISSIONS = [
 
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const exp = Number(localStorage.getItem("786ai_admin_exp") || 0);
+    if (exp > Date.now()) {
+      setIsAuthenticated(true); localStorage.setItem("786ai_admin_exp", String(Date.now() + 24 * 60 * 60 * 1000));
+    } else {
+      localStorage.removeItem("786ai_admin_exp");
+    }
+  }, []);
   useEffect(() => {
     if (typeof window !== "undefined" && localStorage.getItem("786ai_admin_auth") === "true") {
-      setIsAuthenticated(true); localStorage.setItem("786ai_admin_auth", "true");
+      setIsAuthenticated(true); localStorage.setItem("786ai_admin_exp", String(Date.now() + 24 * 60 * 60 * 1000)); localStorage.setItem("786ai_admin_auth", "true");
     }
   }, []);
   const [username, setUsername] = useState("");
@@ -63,7 +72,7 @@ export default function AdminPage() {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (username === "admin" && password === "786aihubpass") {
-      setIsAuthenticated(true); localStorage.setItem("786ai_admin_auth", "true");
+      setIsAuthenticated(true); localStorage.setItem("786ai_admin_exp", String(Date.now() + 24 * 60 * 60 * 1000)); localStorage.setItem("786ai_admin_auth", "true");
       setError("");
     } else {
       setError("Invalid admin username or password!");
@@ -74,7 +83,7 @@ export default function AdminPage() {
     e.preventDefault();
     const email = googleEmailInput.trim().toLowerCase();
     if (ALLOWED_ADMIN_EMAILS.includes(email) || email.endsWith("@786aihub.com")) {
-      setIsAuthenticated(true); localStorage.setItem("786ai_admin_auth", "true");
+      setIsAuthenticated(true); localStorage.setItem("786ai_admin_exp", String(Date.now() + 24 * 60 * 60 * 1000)); localStorage.setItem("786ai_admin_auth", "true");
       setError("");
       setShowGooglePrompt(false);
     } else {
@@ -213,7 +222,7 @@ export default function AdminPage() {
               Home
             </a>
             <button
-              onClick={() => localStorage.removeItem("786ai_admin_auth"); setIsAuthenticated(false)}
+              onClick={() => { localStorage.removeItem("786ai_admin_auth"); localStorage.removeItem("786ai_admin_exp"); setIsAuthenticated(false); }}
               className="px-3 py-1.5 rounded-lg bg-rose-950 text-rose-300 border border-rose-800 text-xs font-semibold"
             >
               Logout
