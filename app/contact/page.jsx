@@ -1,15 +1,37 @@
 "use client";
 import { useState } from "react";
 
+const ADMIN_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL || "contact@786aihub.com";
+
 export default function ContactPage() {
-  const [sent, setSent] = useState(false);
+  const [status, setStatus] = useState("idle");
+  const [lastMsg, setLastMsg] = useState(null);
   const [form, setForm] = useState({ name: "", email: "", message: "" });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setSent(true);
-    setForm({ name: "", email: "", message: "" });
+    setStatus("sending");
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      if (res.ok) {
+        setLastMsg({ ...form });
+        setStatus("sent");
+        setForm({ name: "", email: "", message: "" });
+      } else {
+        setStatus("error");
+      }
+    } catch {
+      setStatus("error");
+    }
   };
+
+  const mailtoHref = lastMsg
+    ? "mailto:" + ADMIN_EMAIL + "?subject=" + encodeURIComponent("786 AI Hub Inquiry from " + lastMsg.name) + "&body=" + encodeURIComponent("Name: " + lastMsg.name + "\nEmail: " + lastMsg.email + "\n\n" + lastMsg.message)
+    : "mailto:" + ADMIN_EMAIL;
 
   return (
     <div className="min-h-screen bg-slate-950 text-white px-4 py-12">
@@ -21,12 +43,27 @@ export default function ContactPage() {
           </a>
         </div>
         <p className="text-slate-400 text-sm mb-6">
-          Have a question, partnership inquiry, or want to feature your AI tool on <span className="text-white font-semibold">786 AI Hub</span>? Send us a message below.
+          Have a question, affiliate partnership inquiry, or want to feature your AI tool on <span className="text-white font-semibold">786 AI Hub</span>? Send us a message below.
         </p>
 
-        {sent ? (
-          <div className="p-4 rounded-xl bg-emerald-950/60 border border-emerald-700/60 text-emerald-300 text-sm mb-4">
-            Thank you! Your message has been received. We will get back to you soon.
+        {status === "sent" ? (
+          <div className="p-5 rounded-xl bg-emerald-950/60 border border-emerald-700/60 text-emerald-300 text-sm space-y-3">
+            <p className="font-semibold">Message submitted successfully! We will reply within 24–48 hours.</p>
+            <div className="flex flex-wrap gap-3 pt-1">
+              <a
+                href={mailtoHref}
+                className="inline-block px-4 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold text-xs transition"
+              >
+                Also Send via Gmail App →
+              </a>
+              <button
+                type="button"
+                onClick={() => setStatus("idle")}
+                className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs transition cursor-pointer"
+              >
+                Send Another
+              </button>
+            </div>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -63,17 +100,21 @@ export default function ContactPage() {
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-cyan-500"
               />
             </div>
+            {status === "error" && (
+              <p className="text-xs text-rose-400">Could not submit form. Please try again or email us directly below.</p>
+            )}
             <button
               type="submit"
-              className="w-full py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold text-sm transition cursor-pointer"
+              disabled={status === "sending"}
+              className="w-full py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-60 text-slate-950 font-semibold text-sm transition cursor-pointer"
             >
-              Send Message
+              {status === "sending" ? "Sending..." : "Send Message"}
             </button>
           </form>
         )}
 
         <div className="mt-6 pt-4 border-t border-slate-800 text-xs text-slate-400 flex flex-wrap justify-between gap-2">
-          <span>Direct Email: <a href="mailto:contact@786aihub.com" className="text-cyan-400 hover:underline">contact@786aihub.com</a></span>
+          <span>Direct Email: <a href={"mailto:" + ADMIN_EMAIL} className="text-cyan-400 hover:underline">{ADMIN_EMAIL}</a></span>
           <span>Response time: 24–48 hours</span>
         </div>
       </div>

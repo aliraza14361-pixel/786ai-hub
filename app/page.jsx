@@ -309,7 +309,7 @@ export default function Home() {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '24px' }}>
-            {filteredTools.map((t) => (
+            {[...filteredTools].sort((a,b)=>{const r=(x)=>{const n=((x&&(x.name||x.title||x.slug))||"").toLowerCase();return n.includes("gemini")?1:n.includes("elevenlabs")?2:n.includes("make")?3:n.includes("jasper")?4:99;};return r(a)-r(b);}).map((t) => (
               <div key={t.id} style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, borderRadius: '20px', padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '16px' }}>
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
