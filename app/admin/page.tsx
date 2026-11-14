@@ -8,15 +8,6 @@ const INITIAL_SUBMISSIONS = [
   { id: 2, name: "Sora Web", category: "Video", url: "https://openai.com/sora", desc: "Text to video generation model.", status: "Pending" },
 ];
 
-const INITIAL_TOOLS = [
-  { id: 101, name: "ChatGPT", category: "Writing/LLMs", status: "Active" },
-  { id: 102, name: "Claude AI", category: "Writing/LLMs", status: "Active" },
-  { id: 103, name: "Perplexity AI", category: "Writing/LLMs", status: "Active" },
-  { id: 104, name: "Midjourney", category: "Image", status: "Active" },
-  { id: 105, name: "Cursor Editor", category: "Coding", status: "Active" },
-  { id: 106, name: "n8n.io", category: "Automation", status: "Active" },
-];
-
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState("");
@@ -26,34 +17,41 @@ export default function AdminPage() {
   const [error, setError] = useState("");
 
   const [submissions, setSubmissions] = useState(INITIAL_SUBMISSIONS);
-  const [tools, setTools] = useState(INITIAL_TOOLS);
+  const [tools, setTools] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [realClicks, setRealClicks] = useState<{ total: number; byTool: Record<string, number> }>({
     total: 0,
     byTool: {},
   });
-  const [loadingClicks, setLoadingClicks] = useState(false);
+  const [loadingData, setLoadingData] = useState(false);
 
-  const fetchRealClicks = async () => {
-    setLoadingClicks(true);
+  const fetchAdminData = async () => {
+    setLoadingData(true);
     try {
-      const res = await fetch("/api/clicks", { cache: "no-store" });
-      if (res.ok) {
-        const data = await res.json();
-        setRealClicks({
-          total: data.total || 0,
-          byTool: data.byTool || {},
-        });
+      const [clicksRes, toolsRes] = await Promise.all([
+        fetch("/api/clicks", { cache: "no-store" }),
+        fetch("/api/tools", { cache: "no-store" }),
+      ]);
+      if (clicksRes.ok) {
+        const data = await clicksRes.json();
+        setRealClicks({ total: data.total || 0, byTool: data.byTool || {} });
+      }
+      if (toolsRes.ok) {
+        const toolsData = await toolsRes.json();
+        if (Array.isArray(toolsData)) {
+          setTools(toolsData.map((t) => ({ ...t, status: "Active" })));
+        }
       }
     } catch (e) {
-      console.error("Failed to fetch real clicks", e);
+      console.error("Failed to fetch admin data", e);
     } finally {
-      setLoadingClicks(false);
+      setLoadingData(false);
     }
   };
 
   useEffect(() => {
     if (isAuthenticated) {
-      fetchRealClicks();
+      fetchAdminData();
     }
   }, [isAuthenticated]);
 
@@ -82,12 +80,12 @@ export default function AdminPage() {
   const handleApprove = (id: number) => {
     const sub = submissions.find((s) => s.id === id);
     if (sub) {
-      setTools([{ id: Date.now(), name: sub.name, category: sub.category, status: "Active" }, ...tools]);
+      setTools([{ id: Date.now(), name: sub.name, category: sub.category, url: sub.url, status: "Active" }, ...tools]);
       setSubmissions(submissions.filter((s) => s.id !== id));
     }
   };
 
-  const handleDestroy = (id: number) => {
+  const handleDestroy = (id: number | string) => {
     setTools(tools.filter((t) => t.id !== id));
   };
 
@@ -185,7 +183,11 @@ export default function AdminPage() {
 
   const toolClickEntries = Object.entries(realClicks.byTool).sort((a, b) => b[1] - a[1]);
   const maxToolClicks = toolClickEntries.length > 0 ? Math.max(...toolClickEntries.map(([, c]) => c), 1) : 1;
-  const activeToolsCount = tools.length;
+  const filteredDirectory = tools.filter(
+    (t) =>
+      t.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      t.category?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen bg-slate-950 text-white p-4 md:p-8">
@@ -193,14 +195,14 @@ export default function AdminPage() {
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
           <div>
             <h1 className="text-2xl font-bold text-white">786 AI Admin Dashboard</h1>
-            <p className="text-xs text-slate-400">Real-time affiliate click analytics, directory & submissions</p>
+            <p className="text-xs text-slate-400">Real-time affiliate click analytics, full directory & submissions</p>
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={fetchRealClicks}
+              onClick={fetchAdminData}
               className="px-3 py-1.5 rounded-lg bg-cyan-950 text-cyan-300 border border-cyan-800 text-xs font-semibold hover:bg-cyan-900"
             >
-              {loadingClicks ? "Refreshing..." : "Refresh Analytics"}
+              {loadingData ? "Refreshing..." : "Refresh Data"}
             </button>
             <a href="/" className="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-200 text-xs font-semibold">
               Home
@@ -232,9 +234,9 @@ export default function AdminPage() {
             <p className="text-[11px] text-slate-500 mt-1">Awaiting approval</p>
           </div>
           <div className="p-4 rounded-xl bg-slate-900 border border-slate-800">
-            <p className="text-xs text-slate-400">Managed Catalog</p>
-            <p className="text-2xl font-extrabold text-purple-400 mt-1">{activeToolsCount}</p>
-            <p className="text-[11px] text-slate-500 mt-1">Active directory items</p>
+            <p className="text-xs text-slate-400">Live Directory Tools</p>
+            <p className="text-2xl font-extrabold text-purple-400 mt-1">{tools.length}</p>
+            <p className="text-[11px] text-slate-500 mt-1">Total active tools</p>
           </div>
         </div>
 
@@ -313,15 +315,30 @@ export default function AdminPage() {
           )}
         </div>
 
-        {/* Manage Live Directory Catalog */}
+        {/* Manage Live Directory Catalog (All Tools) */}
         <div className="space-y-4 pt-6 border-t border-slate-800">
-          <h2 className="text-lg font-bold text-white">Manage Live Directory Catalog</h2>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-lg font-bold text-white">
+              Manage Live Directory Catalog ({filteredDirectory.length} / {tools.length})
+            </h2>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search tools or category..."
+              className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-cyan-500"
+            />
+          </div>
           <div className="divide-y divide-slate-800 bg-slate-900 rounded-xl border border-slate-800 overflow-hidden">
-            {tools.map((tool) => (
-              <div key={tool.id} className="p-4 flex justify-between items-center">
+            {filteredDirectory.map((tool) => (
+              <div key={tool.id} className="p-4 flex flex-wrap justify-between items-center gap-3">
                 <div>
-                  <p className="font-semibold text-white">{tool.name}</p>
-                  <p className="text-xs text-slate-400">{tool.category}</p>
+                  <p className="font-semibold text-white">
+                    {tool.icon ? `${tool.icon} ` : ""}{tool.name}
+                  </p>
+                  <p className="text-xs text-slate-400">
+                    {tool.category} {tool.url ? `• ${tool.url}` : ""}
+                  </p>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="px-2 py-0.5 rounded text-xs bg-emerald-950 text-emerald-400 border border-emerald-800">
