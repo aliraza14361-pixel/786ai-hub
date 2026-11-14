@@ -46,6 +46,8 @@ export default function RootLayout({ children }) {
       <body className="bg-[#0B0F19] text-white antialiased min-h-screen flex flex-col">
         <div className="flex-grow">{children}</div>
         <Footer />
+      
+        <a href="/studio" style={{position:"fixed",bottom:"20px",right:"20px",zIndex:9999,background:"linear-gradient(135deg,#06b6d4,#3b82f6)",color:"#020617",fontWeight:"800",padding:"12px 20px",borderRadius:"9999px",boxShadow:"0 10px 25px rgba(6,182,212,0.45)",textDecoration:"none",fontSize:"14px"}}>✨ 786AIHub AI</a>
       </body>
     </html>
   );
