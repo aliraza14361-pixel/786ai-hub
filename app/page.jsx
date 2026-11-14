@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import AuthModal from '../components/AuthModal';
 
 const MASTER_100_TOOLS = [
+  { id: 0, name: "Google Gemini", description: "Google advanced multimodal AI model for text, code, and reasoning.", category: "Text & Writing AI", rating: "4.9", pricing: "Freemium", icon: "✨", url: "https://gemini.google.com/" },
   // Text & Writing AI
   { id: '1', name: 'ChatGPT', description: 'Advanced AI language model for interaction, creativity, and writing.', category: 'Text & Writing', rating: '5.0', pricing: 'Freemium', icon: '🤖', url: 'https://chatgpt.com/' },
   { id: '2', name: 'Claude AI', description: 'Next-gen assistant by Anthropic for long-context analysis and code.', category: 'Text & Writing', rating: '4.9', pricing: 'Freemium', icon: '🧠', url: 'https://claude.ai/' },
