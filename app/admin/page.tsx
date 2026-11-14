@@ -30,8 +30,24 @@ export default function AdminPage() {
   const [showGooglePrompt, setShowGooglePrompt] = useState(false);
   const [error, setError] = useState("");
 
-  const [submissions, setSubmissions] = useState(INITIAL_SUBMISSIONS);
-  const [tools, setTools] = useState<any[]>([]);
+  const [submissions, setSubmissions] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("786ai_submissions");
+      if (saved) {
+        try { return JSON.parse(saved); } catch (e) {}
+      }
+    }
+    return INITIAL_SUBMISSIONS;
+  });
+  const [tools, setTools] = useState<any[]>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("786ai_tools");
+      if (saved) {
+        try { return JSON.parse(saved); } catch (e) {}
+      }
+    }
+    return [];
+  });
   const [searchQuery, setSearchQuery] = useState("");
   const [realClicks, setRealClicks] = useState<{ total: number; byTool: Record<string, number> }>({
     total: 0,
@@ -94,13 +110,19 @@ export default function AdminPage() {
   const handleApprove = (id: number) => {
     const sub = submissions.find((s) => s.id === id);
     if (sub) {
-      setTools([{ id: Date.now(), name: sub.name, category: sub.category, url: sub.url, status: "Active" }, ...tools]);
-      setSubmissions(submissions.filter((s) => s.id !== id));
+      const newTools = [{ id: Date.now(), name: sub.name, category: sub.category, url: sub.url, status: "Active" }, ...tools];
+      const newSubs = submissions.filter((s) => s.id !== id);
+      setTools(newTools);
+      setSubmissions(newSubs);
+      localStorage.setItem("786ai_tools", JSON.stringify(newTools));
+      localStorage.setItem("786ai_submissions", JSON.stringify(newSubs));
     }
   };
 
   const handleDestroy = (id: number | string) => {
-    setTools(tools.filter((t) => t.id !== id));
+    const newTools = tools.filter((t) => t.id !== id);
+    setTools(newTools);
+    localStorage.setItem("786ai_tools", JSON.stringify(newTools));
   };
 
   if (!isAuthenticated) {
@@ -317,7 +339,11 @@ export default function AdminPage() {
                       Approve
                     </button>
                     <button
-                      onClick={() => setSubmissions(submissions.filter((i) => i.id !== sub.id))}
+                      onClick={() => {
+    const newSubs = submissions.filter((i) => i.id !== sub.id);
+    setSubmissions(newSubs);
+    localStorage.setItem("786ai_submissions", JSON.stringify(newSubs));
+  }}
                       className="px-3 py-1.5 bg-rose-950 hover:bg-rose-900 text-rose-300 text-xs font-bold rounded-lg transition"
                     >
                       Reject
