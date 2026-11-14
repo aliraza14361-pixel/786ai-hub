@@ -329,7 +329,7 @@ export default function Home() {
                   <span style={{ fontSize: '11px', backgroundColor: t.pricing === 'Free' ? '#10b98120' : t.pricing === 'Paid' ? '#ef444420' : '#0284c720', color: t.pricing === 'Free' ? '#10b981' : t.pricing === 'Paid' ? '#ef4444' : '#38bdf8', padding: '4px 12px', borderRadius: '12px', fontWeight: '800' }}>
                     {t.pricing === 'Free' ? '100% Free' : t.pricing}
                   </span>
-                  <a href={t.url} target="_blank" rel="noreferrer" style={{ backgroundColor: '#7c3aed', color: '#fff', textDecoration: 'none', borderRadius: '10px', padding: '8px 18px', fontSize: '12px', fontWeight: '700' }}>
+                  <a href={`/go/${t.slug || t.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}?u=${encodeURIComponent(t.url)}`} target="_blank" rel="noreferrer" style={{ backgroundColor: '#7c3aed', color: '#fff', textDecoration: 'none', borderRadius: '10px', padding: '8px 18px', fontSize: '12px', fontWeight: '700' }}>
                     Launch Tool ↗
                   </a>
                 </div>
