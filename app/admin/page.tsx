@@ -10,6 +10,11 @@ const INITIAL_SUBMISSIONS = [
 
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  useEffect(() => {
+    if (typeof window !== "undefined" && localStorage.getItem("786ai_admin_auth") === "true") {
+      setIsAuthenticated(true); localStorage.setItem("786ai_admin_auth", "true");
+    }
+  }, []);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [googleEmailInput, setGoogleEmailInput] = useState("");
@@ -58,7 +63,7 @@ export default function AdminPage() {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (username === "admin" && password === "786aihubpass") {
-      setIsAuthenticated(true);
+      setIsAuthenticated(true); localStorage.setItem("786ai_admin_auth", "true");
       setError("");
     } else {
       setError("Invalid admin username or password!");
@@ -69,7 +74,7 @@ export default function AdminPage() {
     e.preventDefault();
     const email = googleEmailInput.trim().toLowerCase();
     if (ALLOWED_ADMIN_EMAILS.includes(email) || email.endsWith("@786aihub.com")) {
-      setIsAuthenticated(true);
+      setIsAuthenticated(true); localStorage.setItem("786ai_admin_auth", "true");
       setError("");
       setShowGooglePrompt(false);
     } else {
@@ -208,7 +213,7 @@ export default function AdminPage() {
               Home
             </a>
             <button
-              onClick={() => setIsAuthenticated(false)}
+              onClick={() => localStorage.removeItem("786ai_admin_auth"); setIsAuthenticated(false)}
               className="px-3 py-1.5 rounded-lg bg-rose-950 text-rose-300 border border-rose-800 text-xs font-semibold"
             >
               Logout
