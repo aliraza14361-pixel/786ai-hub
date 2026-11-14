@@ -150,6 +150,7 @@ export default function Home() {
             <button onClick={() => setAuthModalOpen(true)} style={{ backgroundColor: '#7c3aed', color: '#fff', border: 'none', borderRadius: '20px', padding: '7px 16px', cursor: 'pointer', fontWeight: '700', fontSize: '12px' }}>Login / Join</button>
           )}
 
+          <a href="/submit" style={{ backgroundColor: "#10b981", color: "#fff", padding: "7px 14px", borderRadius: "20px", textDecoration: "none", fontWeight: "700", fontSize: "12px" }}>+ Add Tool</a>
           <a href="/admin" style={{ backgroundColor: '#0ea5e9', color: '#fff', padding: '7px 16px', borderRadius: '20px', textDecoration: 'none', fontWeight: '700', fontSize: '12px' }}>Admin Panel</a>
         </div>
       </header>
@@ -329,7 +330,7 @@ export default function Home() {
                   <span style={{ fontSize: '11px', backgroundColor: t.pricing === 'Free' ? '#10b98120' : t.pricing === 'Paid' ? '#ef444420' : '#0284c720', color: t.pricing === 'Free' ? '#10b981' : t.pricing === 'Paid' ? '#ef4444' : '#38bdf8', padding: '4px 12px', borderRadius: '12px', fontWeight: '800' }}>
                     {t.pricing === 'Free' ? '100% Free' : t.pricing}
                   </span>
-                  <a href={`/go/${t.slug || t.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}?u=${encodeURIComponent(t.url)}`} target="_blank" rel="noreferrer" style={{ backgroundColor: '#7c3aed', color: '#fff', textDecoration: 'none', borderRadius: '10px', padding: '8px 18px', fontSize: '12px', fontWeight: '700' }}>
+                <a href={"/go/" + (t.slug || t.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")) + "?u=" + encodeURIComponent(t.url)} target="_blank" rel="noreferrer" style={{ backgroundColor: "#7c3aed", color: "#fff", textDecoration: "none", borderRadius: "10px", padding: "8px 18px", fontSize: "12px", fontWeight: "700" }}>
                     Launch Tool ↗
                   </a>
                 </div>
