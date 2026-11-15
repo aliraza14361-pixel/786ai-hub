@@ -233,6 +233,97 @@ function extractHtml(text) {
   return match ? match[1].trim() : text.includes("<html") ? text : "";
 }
 
+function stripCodeBlocks(text) {
+  if (!text) return "";
+  const blockRegex = new RegExp(FENCE + "[\\w-]*\\n[\\s\\S]*?" + FENCE, "g");
+  return text.replace(blockRegex, "").trim();
+}
+
+function CleanCanvasCard({ htmlPreview, fullText, onDownload }) {
+  const [showCode, setShowCode] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
+  const summaryText = stripCodeBlocks(fullText);
+
+  const handleCopyCode = () => {
+    navigator.clipboard.writeText(htmlPreview);
+    setCopiedCode(true);
+    setTimeout(() => setCopiedCode(false), 2000);
+  };
+
+  return (
+    <div className="space-y-2.5">
+      {summaryText && <FormattedOutput content={summaryText} />}
+
+      <div className="rounded-2xl overflow-hidden border border-slate-700/90 bg-slate-950 shadow-lg">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-slate-800/90 border-b border-slate-700/80">
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-400" />
+            <span className="text-[11px] font-extrabold uppercase tracking-wider text-cyan-300">
+              {showCode ? "HTML Source Code" : "Live Canvas App"}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setShowCode((v) => !v)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition ${
+                showCode
+                  ? "bg-cyan-500/20 border-cyan-400 text-cyan-300"
+                  : "bg-slate-900 hover:bg-slate-700 border-slate-700 text-slate-200"
+              }`}
+            >
+              {showCode ? "🖥️ Preview App" : "</> View Code"}
+            </button>
+
+            {!showCode && (
+              <button
+                type="button"
+                onClick={() => setExpanded((v) => !v)}
+                className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200"
+                title="Resize Preview"
+              >
+                {expanded ? "Compact" : "Expand"}
+              </button>
+            )}
+
+            {showCode && (
+              <button
+                type="button"
+                onClick={handleCopyCode}
+                className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200"
+              >
+                {copiedCode ? "Copied!" : "Copy"}
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={onDownload}
+              className="px-2.5 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs"
+            >
+              ⬇ .html
+            </button>
+          </div>
+        </div>
+
+        {showCode ? (
+          <pre className="p-3.5 max-h-96 overflow-auto text-xs text-slate-200 font-mono leading-relaxed bg-slate-950">
+            {htmlPreview}
+          </pre>
+        ) : (
+          <iframe
+            title="786AI Canvas Live App"
+            srcDoc={htmlPreview}
+            className={`w-full bg-white transition-all ${expanded ? "h-[520px]" : "h-80"}`}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
 function resizeImageFile(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -286,6 +377,7 @@ export default function StudioPage() {
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [shareFeedback, setShareFeedback] = useState(false);
 
   // Personal Intelligence (Labs)
   const [personalEnabled, setPersonalEnabled] = useState(true);
@@ -313,7 +405,6 @@ export default function StudioPage() {
   const cameraInputRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // Check existing login session on mount
   useEffect(() => {
     try {
       const savedUser = localStorage.getItem(AUTH_USER_KEY);
@@ -333,7 +424,6 @@ export default function StudioPage() {
     setAuthChecked(true);
   }, []);
 
-  // Load user-specific chat history when authUser changes
   useEffect(() => {
     if (!authUser?.email) {
       setSessions([]);
@@ -360,6 +450,26 @@ export default function StudioPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
+
+  const handleShareStudio = async () => {
+    const shareUrl = "https://786ai-hub.vercel.app/studio";
+    const shareData = {
+      title: "786AI Studio — All-in-One Free AI",
+      text: "Use 786AI, DeepSeek, ChatGPT, Gemini & Grok, generate HD images, and build live apps 100% free!",
+      url: shareUrl
+    };
+    try {
+      if (typeof navigator !== "undefined" && navigator.share) {
+        await navigator.share(shareData);
+        return;
+      }
+    } catch {}
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setShareFeedback(true);
+      setTimeout(() => setShareFeedback(false), 2200);
+    } catch {}
+  };
 
   const handleAuthSubmit = async (e) => {
     e.preventDefault();
@@ -669,7 +779,7 @@ export default function StudioPage() {
     setMessages(nextMessages);
     setLoading(true);
 
-    // 1. Create Images Mode (Server-side proxy with auth token)
+    // 1. Create Images Mode
     if (toolToUse === "image" && !currentImage) {
       try {
         const imgRes = await fetch("/api/786ai/image", {
@@ -715,7 +825,7 @@ export default function StudioPage() {
       return;
     }
 
-    // 2. Gemini API (Authenticated with x-studio-token)
+    // 2. Gemini API
     try {
       const chatHistoryPayload = nextMessages
         .filter((m) => !m.imageUrl)
@@ -748,7 +858,7 @@ export default function StudioPage() {
 
       const data = await res.json();
       const replyText = data.error ? "Error: " + data.error : data.text;
-      const htmlCode = toolToUse === "canvas" || toolToUse === "coding" ? extractHtml(replyText) : "";
+      const htmlCode = extractHtml(replyText);
 
       const aiMsg = {
         id: "a-" + Date.now(),
@@ -763,7 +873,7 @@ export default function StudioPage() {
       setMessages(finalThread);
 
       if (!data.error) {
-        if (autoSpeak) speakText(replyText);
+        if (autoSpeak && !htmlCode) speakText(replyText);
         persistSession(sid, finalThread, selectedModel, userMsg.text);
       }
     } catch {
@@ -786,7 +896,7 @@ export default function StudioPage() {
     return <div className="fixed inset-0 z-[10000] bg-[#080c14]" />;
   }
 
-  // Mandatory Login / Sign-Up Gate Screen (OpenAI / ChatGPT Style)
+  // Mandatory Login / Sign-Up Gate Screen
   if (!authUser) {
     return (
       <div className="fixed inset-0 z-[10000] bg-[#080c14] text-slate-100 flex flex-col justify-between overflow-y-auto px-4 py-6">
@@ -811,7 +921,6 @@ export default function StudioPage() {
               Log in to access 786AI, DeepSeek, ChatGPT, Gemini, Canvas & Image Studio
             </p>
 
-            {/* Login / Sign Up Switcher Tabs */}
             <div className="grid grid-cols-2 gap-1 p-1 rounded-2xl bg-slate-950 border border-slate-800 mb-5">
               <button
                 type="button"
@@ -966,7 +1075,7 @@ export default function StudioPage() {
         className="hidden"
       />
 
-      {/* Slide-Over Chat History Sidebar with User Profile & Logout */}
+      {/* Slide-Over Chat History Sidebar */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-50 flex">
           <div
@@ -1051,7 +1160,6 @@ export default function StudioPage() {
               )}
             </div>
 
-            {/* Account Profile + Logout + Navigation */}
             <div className="p-3 border-t border-slate-800 space-y-2">
               <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-950 border border-slate-800">
                 <div className="flex items-center gap-2.5 min-w-0">
@@ -1230,7 +1338,7 @@ export default function StudioPage() {
         </div>
       )}
 
-      {/* Top Sticky Header Bar */}
+      {/* Top Sticky Header Bar with Share Button */}
       <header className="shrink-0 h-14 px-3 sm:px-5 bg-[#0b101b]/95 backdrop-blur-md border-b border-slate-800/90 flex items-center justify-between gap-2 relative z-30">
         <div className="flex items-center gap-2">
           <button
@@ -1304,7 +1412,7 @@ export default function StudioPage() {
                 setSpeaking(false);
               }
             }}
-            className={`w-9 h-9 rounded-full border flex items-center justify-center text-sm transition ${
+            className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full border flex items-center justify-center text-xs sm:text-sm transition ${
               autoSpeak
                 ? "bg-cyan-500/20 border-cyan-400 text-cyan-300"
                 : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
@@ -1315,8 +1423,20 @@ export default function StudioPage() {
           </button>
           <button
             type="button"
+            onClick={handleShareStudio}
+            className={`px-2.5 py-1.5 rounded-full border text-xs font-bold transition ${
+              shareFeedback
+                ? "bg-emerald-500/20 border-emerald-400 text-emerald-300"
+                : "bg-slate-900 hover:bg-slate-800 border-slate-800 text-cyan-300"
+            }`}
+            title="Share 786AI Studio"
+          >
+            {shareFeedback ? "✓ Copied" : "📤 Share"}
+          </button>
+          <button
+            type="button"
             onClick={startNewChat}
-            className="px-3 py-1.5 rounded-full bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs font-bold text-slate-200"
+            className="px-2.5 py-1.5 rounded-full bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs font-bold text-slate-200"
             title="New Chat"
           >
             + New
@@ -1462,29 +1582,14 @@ export default function StudioPage() {
                             ⬇ Download Image
                           </a>
                         </div>
+                      ) : msg.htmlPreview ? (
+                        <CleanCanvasCard
+                          htmlPreview={msg.htmlPreview}
+                          fullText={msg.text}
+                          onDownload={() => handleDownloadHtml(msg.htmlPreview)}
+                        />
                       ) : (
-                        <>
-                          {msg.htmlPreview && (
-                            <div className="mb-3 rounded-xl overflow-hidden border border-slate-700 bg-slate-950">
-                              <div className="flex items-center justify-between px-3 py-2 bg-slate-800/90">
-                                <span className="text-[11px] font-bold text-cyan-300">CANVAS LIVE PREVIEW</span>
-                                <button
-                                  type="button"
-                                  onClick={() => handleDownloadHtml(msg.htmlPreview)}
-                                  className="px-3 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs"
-                                >
-                                  ⬇ Download .html
-                                </button>
-                              </div>
-                              <iframe
-                                title="786AI Canvas Preview"
-                                srcDoc={msg.htmlPreview}
-                                className="w-full h-80 bg-white"
-                              />
-                            </div>
-                          )}
-                          <FormattedOutput content={msg.text} />
-                        </>
+                        <FormattedOutput content={msg.text} />
                       )}
                     </div>
                   </div>
