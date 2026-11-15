@@ -3,8 +3,8 @@ export default function robots() {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/admin", "/api/"],
+      disallow: "/api/"
     },
-    sitemap: "https://786ai-hub.vercel.app/sitemap.xml",
+    sitemap: "https://786ai-hub.vercel.app/sitemap.xml"
   };
 }
