@@ -81,9 +81,9 @@ export default function StudioPage() {
         <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
           <div>
             <span className="inline-block px-3 py-1 text-xs font-bold rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 mb-2">
-              786AIHUB ALL-IN-ONE STUDIO
+              786AI • ALL-IN-ONE STUDIO
             </span>
-            <h1 className="text-3xl font-extrabold text-white">786AIHub AI Studio</h1>
+            <h1 className="text-3xl font-extrabold text-white">786AI Studio</h1>
             <p className="text-slate-400 text-sm mt-1">Chat, Images, App Builder, Video, Voice, Music, Automation & Social Content — 100% Free</p>
           </div>
           <Link href="/" className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-sm text-cyan-300 hover:border-cyan-500">
@@ -137,7 +137,7 @@ export default function StudioPage() {
 
         {imageUrl && (
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 mb-6 text-center">
-            <img src={imageUrl} alt="786AIHub Generated" className="max-h-[512px] mx-auto rounded-xl border border-slate-800" />
+            <img src={imageUrl} alt="786AI Generated" className="max-h-[512px] mx-auto rounded-xl border border-slate-800" />
             <a href={imageUrl} target="_blank" rel="noreferrer" className="inline-block mt-4 px-5 py-2 rounded-xl bg-cyan-500 text-slate-950 font-bold text-sm">
               Open Full HD Image
             </a>
@@ -147,14 +147,14 @@ export default function StudioPage() {
         {previewHtml && (
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 mb-6">
             <div className="text-xs font-bold text-cyan-300 mb-2">LIVE APP PREVIEW</div>
-            <iframe title="786AIHub Live Preview" srcDoc={previewHtml} className="w-full h-96 bg-white rounded-xl border border-slate-700" />
+            <iframe title="786AI Live Preview" srcDoc={previewHtml} className="w-full h-96 bg-white rounded-xl border border-slate-700" />
           </div>
         )}
 
         {output && (
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold text-cyan-300">786AIHUB OUTPUT</span>
+              <span className="text-xs font-bold text-cyan-300">786AI OUTPUT</span>
               <button
                 onClick={() => navigator.clipboard.writeText(output)}
                 className="px-3 py-1 rounded-lg bg-slate-800 text-xs text-slate-200 hover:bg-slate-700"
