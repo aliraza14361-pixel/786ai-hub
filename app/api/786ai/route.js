@@ -8,20 +8,54 @@ function getSecret() {
   return raw.replace(/[\s\r\n]+/g, "").trim() || "786ai-hub-default-secret-key";
 }
 
-function verifyToken(token) {
-  if (!token || typeof token !== "string" || !token.includes(".")) return null;
-  const parts = token.split(".");
-  if (parts.length !== 2) return null;
-  const [data, sig] = parts;
-  const expected = crypto.createHmac("sha256", getSecret()).update(data).digest("base64url");
-  if (sig !== expected) return null;
-  try {
-    const parsed = JSON.parse(Buffer.from(data, "base64url").toString("utf8"));
-    if (!parsed.exp || parsed.exp < Date.now()) return null;
-    return parsed;
-  } catch {
-    return null;
+async function verifyUser(req) {
+  const token = req.headers.get("x-studio-token") || "";
+  const headerEmail = (req.headers.get("x-user-email") || "").trim().toLowerCase();
+
+  // Check HMAC token if present
+  if (token && token.includes(".") && token.split(".").length === 2) {
+    const [data, sig] = token.split(".");
+    const expected = crypto.createHmac("sha256", getSecret()).update(data).digest("base64url");
+    if (sig === expected) {
+      try {
+        const parsed = JSON.parse(Buffer.from(data, "base64url").toString("utf8"));
+        if (parsed.exp && parsed.exp >= Date.now()) return parsed;
+      } catch {}
+    }
   }
+
+  // Check Supabase JWT from Home Page login
+  const sbUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").replace(/\/+$/, "");
+  const sbAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+  if (sbUrl && sbAnon && token && token !== "home-session") {
+    try {
+      const r = await fetch(sbUrl + "/auth/v1/user", {
+        headers: {
+          apikey: sbAnon,
+          Authorization: "Bearer " + token
+        }
+      });
+      if (r.ok) {
+        const u = await r.json();
+        if (u && u.email) {
+          return {
+            email: u.email,
+            name: u.user_metadata?.full_name || u.user_metadata?.name || u.email.split("@")[0]
+          };
+        }
+      }
+    } catch {}
+  }
+
+  // Fallback for Home Page local session
+  if (token === "home-session" && headerEmail && headerEmail.includes("@")) {
+    return {
+      email: headerEmail,
+      name: headerEmail.split("@")[0]
+    };
+  }
+
+  return null;
 }
 
 const MODE_PROMPTS = {
@@ -66,8 +100,7 @@ async function callGemini(modelPath, apiKey, sys, contents) {
 
 export async function POST(req) {
   try {
-    const token = req.headers.get("x-studio-token") || "";
-    const user = verifyToken(token);
+    const user = await verifyUser(req);
     if (!user) {
       return NextResponse.json({ error: "Please log in first to use 786AI Studio." }, { status: 401 });
     }

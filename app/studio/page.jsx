@@ -1,6 +1,8 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import AuthModal from "../../components/AuthModal";
+import { supabase, getUnifiedUser, signOutUnified } from "../../lib/studioAuthBridge";
 
 const AUTH_USER_KEY = "786ai_user_session_v1"; // Uses main home page session key
 const REGISTERED_USERS_KEY = "786ai_registered_users_v1";
@@ -406,22 +408,50 @@ export default function StudioPage() {
   const fileInputRef = useRef(null);
 
   useEffect(() => {
-    try {
-      const savedUser = localStorage.getItem(AUTH_USER_KEY);
-      if (savedUser) {
-        const parsedUser = JSON.parse(savedUser);
-        if (parsedUser && parsedUser.email && parsedUser.token) {
-          setAuthUser(parsedUser);
+    let active = true;
+    (async () => {
+      try {
+        const u = await getUnifiedUser();
+        if (active && u) setAuthUser(u);
+        const savedPersonal = localStorage.getItem(PERSONAL_KEY);
+        if (active && savedPersonal) {
+          const p = JSON.parse(savedPersonal);
+          if (typeof p.enabled === "boolean") setPersonalEnabled(p.enabled);
+          if (typeof p.note === "string") setPersonalNote(p.note);
         }
+      } catch {}
+      if (active) setAuthChecked(true);
+    })();
+
+    let sub = null;
+    if (supabase) {
+      const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (session?.user?.email) {
+          const u = session.user;
+          setAuthUser({
+            email: u.email,
+            name: u.user_metadata?.full_name || u.user_metadata?.name || u.email.split("@")[0],
+            token: session.access_token
+          });
+        } else {
+          setAuthUser(null);
+        }
+      });
+      sub = data?.subscription;
+    }
+
+    const poll = setInterval(async () => {
+      const u = await getUnifiedUser();
+      if (u) {
+        setAuthUser((prev) => (prev?.email === u.email ? prev : u));
       }
-      const savedPersonal = localStorage.getItem(PERSONAL_KEY);
-      if (savedPersonal) {
-        const p = JSON.parse(savedPersonal);
-        if (typeof p.enabled === "boolean") setPersonalEnabled(p.enabled);
-        if (typeof p.note === "string") setPersonalNote(p.note);
-      }
-    } catch {}
-    setAuthChecked(true);
+    }, 1000);
+
+    return () => {
+      active = false;
+      if (sub) sub.unsubscribe();
+      clearInterval(poll);
+    };
   }, []);
 
   useEffect(() => {
@@ -556,10 +586,8 @@ export default function StudioPage() {
     }
   };
 
-  const handleLogout = () => {
-    try {
-      localStorage.removeItem(AUTH_USER_KEY);
-    } catch {}
+  const handleLogout = async () => {
+    await signOutUnified();
     setAuthUser(null);
     setMessages([]);
     setCurrentSessionId(null);
@@ -786,7 +814,8 @@ export default function StudioPage() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "x-studio-token": authUser.token
+            "x-studio-token": authUser.token,
+            "x-user-email": authUser.email
           },
           body: JSON.stringify({ prompt: textToSend })
         });
@@ -836,7 +865,8 @@ export default function StudioPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-studio-token": authUser.token
+          "x-studio-token": authUser.token,
+            "x-user-email": authUser.email
         },
         body: JSON.stringify({
           prompt: textToSend,
@@ -896,155 +926,38 @@ export default function StudioPage() {
     return <div className="fixed inset-0 z-[10000] bg-[#080c14]" />;
   }
 
-  // Mandatory Login / Sign-Up Gate Screen
+  // Mandatory Login Gate using Home Page's exact AuthModal
   if (!authUser) {
     return (
-      <div className="fixed inset-0 z-[10000] bg-[#080c14] text-slate-100 flex flex-col justify-between overflow-y-auto px-4 py-6">
-        <div className="max-w-md w-full mx-auto flex items-center justify-between">
-          <Link href="/" className="text-xs font-semibold text-cyan-300 hover:text-cyan-200">
-            ← Back to 50 AI Tools
-          </Link>
-          <span className="px-2.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-[11px] font-bold text-cyan-300">
-            786AI STUDIO
+      <div className="fixed inset-0 z-[10000] bg-[#080c14] text-slate-100 flex flex-col items-center justify-center p-4">
+        <div className="mb-4 text-center">
+          <span className="px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-xs font-bold text-cyan-300">
+            786AI STUDIO — LOGIN REQUIRED FOR CHAT
           </span>
         </div>
-
-        <div className="max-w-md w-full mx-auto my-auto py-6">
-          <div className="bg-[#0e1422] border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-3xl mx-auto mb-4 shadow-lg">
-              ✨
-            </div>
-            <h1 className="text-2xl font-extrabold text-white text-center">
-              {authMode === "login" ? "Welcome back" : "Create your free account"}
-            </h1>
-            <p className="text-xs text-slate-400 text-center mt-1.5 mb-6">
-              Log in to access 786AI, DeepSeek, ChatGPT, Gemini, Canvas & Image Studio
-            </p>
-
-            <div className="grid grid-cols-2 gap-1 p-1 rounded-2xl bg-slate-950 border border-slate-800 mb-5">
-              <button
-                type="button"
-                onClick={() => { setAuthMode("login"); setAuthError(""); }}
-                className={`py-2 rounded-xl text-xs font-bold transition ${
-                  authMode === "login"
-                    ? "bg-cyan-500 text-slate-950 shadow"
-                    : "text-slate-400 hover:text-white"
-                }`}
-              >
-                Log In
-              </button>
-              <button
-                type="button"
-                onClick={() => { setAuthMode("signup"); setAuthError(""); }}
-                className={`py-2 rounded-xl text-xs font-bold transition ${
-                  authMode === "signup"
-                    ? "bg-cyan-500 text-slate-950 shadow"
-                    : "text-slate-400 hover:text-white"
-                }`}
-              >
-                Sign Up Free
-              </button>
-            </div>
-
-            {authError && (
-              <div className="mb-4 px-3.5 py-2.5 rounded-xl bg-rose-500/15 border border-rose-500/40 text-xs text-rose-300">
-                {authError}
-              </div>
-            )}
-
-            <form onSubmit={handleAuthSubmit} className="space-y-3.5">
-              {authMode === "signup" && (
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Full Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={authName}
-                    onChange={(e) => setAuthName(e.target.value)}
-                    placeholder="Enter your name"
-                    className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-400 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none"
-                  />
-                </div>
-              )}
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Email Address</label>
-                <input
-                  type="email"
-                  required
-                  value={authEmail}
-                  onChange={(e) => setAuthEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-400 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Password</label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    required
-                    minLength={6}
-                    value={authPassword}
-                    onChange={(e) => setAuthPassword(e.target.value)}
-                    placeholder="Minimum 6 characters"
-                    className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-400 rounded-xl px-3.5 py-2.5 pr-12 text-sm text-white focus:outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-white"
-                  >
-                    {showPassword ? "Hide" : "Show"}
-                  </button>
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={authLoading}
-                className="w-full py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-extrabold text-sm shadow-lg transition disabled:opacity-50 mt-2"
-              >
-                {authLoading
-                  ? "Please wait..."
-                  : authMode === "login"
-                  ? "Continue to 786AI Studio →"
-                  : "Create Free Account & Start →"}
-              </button>
-            </form>
-
-            <div className="mt-5 pt-4 border-t border-slate-800/80 text-center text-xs text-slate-400">
-              {authMode === "login" ? (
-                <>
-                  Don&apos;t have an account?{" "}
-                  <button
-                    type="button"
-                    onClick={() => { setAuthMode("signup"); setAuthError(""); }}
-                    className="text-cyan-400 font-bold hover:underline"
-                  >
-                    Sign up free
-                  </button>
-                </>
-              ) : (
-                <>
-                  Already have an account?{" "}
-                  <button
-                    type="button"
-                    onClick={() => { setAuthMode("login"); setAuthError(""); }}
-                    className="text-cyan-400 font-bold hover:underline"
-                  >
-                    Log in
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <p className="text-center text-[11px] text-slate-500">
-          100% Free Access • Your chats are saved privately to your account
-        </p>
+        <AuthModal
+          isOpen={true}
+          open={true}
+          onClose={() => { window.location.href = "/"; }}
+          onSuccess={(u) => {
+            if (u?.email) {
+              setAuthUser({
+                email: u.email,
+                name: u.name || u.user_metadata?.full_name || u.email.split("@")[0],
+                token: u.token || u.access_token || "home-session"
+              });
+            }
+          }}
+          setUser={(u) => {
+            if (u?.email) {
+              setAuthUser({
+                email: u.email,
+                name: u.name || u.user_metadata?.full_name || u.email.split("@")[0],
+                token: u.token || u.access_token || "home-session"
+              });
+            }
+          }}
+        />
       </div>
     );
   }
