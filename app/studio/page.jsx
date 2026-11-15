@@ -715,7 +715,7 @@ export default function StudioPage() {
 
       {/* Main Scrollable Chat Feed (Messages flow upward like Gemini & ChatGPT) */}
       <main className="flex-1 overflow-y-auto px-3 sm:px-6 py-4">
-        <div className="max-w-3xl mx-auto min-h-full flex flex-col justify-end">
+        <div className="max-w-3xl mx-auto min-h-full flex flex-col justify-start">
           {messages.length === 0 ? (
             <div className="my-auto py-6 text-center sm:text-left">
               <div className="inline-flex sm:flex items-center gap-3 mb-3">

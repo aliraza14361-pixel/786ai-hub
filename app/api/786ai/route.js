@@ -18,9 +18,13 @@ const MODEL_PERSONAS = {
   grok: "You are running in Grok Bold & Witty mode inside 786AI Studio. Be sharp, direct, slightly witty, and straight to the point without robotic filler."
 };
 
+function sanitizeError(msg) {
+  return String(msg || "AI request failed").replace(/key=[^&\s"']+/gi, "key=***");
+}
+
 async function callGemini(modelPath, apiKey, sys, contents) {
   const cleanPath = modelPath.startsWith("models/") ? modelPath : "models/" + modelPath;
-  const url = "[https://generativelanguage.googleapis.com/v1beta/](https://generativelanguage.googleapis.com/v1beta/)" + cleanPath + ":generateContent?key=" + apiKey;
+  const url = `[https://generativelanguage.googleapis.com/v1beta/$](https://generativelanguage.googleapis.com/v1beta/$){cleanPath}:generateContent?key=${encodeURIComponent(apiKey)}`;
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -39,7 +43,8 @@ export async function POST(req) {
     if (!prompt || !prompt.trim()) {
       return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
     }
-    const apiKey = process.env.GEMINI_API_KEY;
+    const rawKey = process.env.GEMINI_API_KEY || "";
+    const apiKey = rawKey.replace(/[\s\r\n]+/g, "").trim();
     if (!apiKey) {
       return NextResponse.json({ error: "GEMINI_API_KEY not configured on server yet." }, { status: 500 });
     }
@@ -73,10 +78,10 @@ export async function POST(req) {
         const text = result.data?.candidates?.[0]?.content?.parts?.[0]?.text || "No response generated.";
         return NextResponse.json({ text });
       }
-      lastError = result.data?.error?.message || lastError;
+      lastError = sanitizeError(result.data?.error?.message || lastError);
     }
 
-    const listRes = await fetch("[https://generativelanguage.googleapis.com/v1beta/models?key=](https://generativelanguage.googleapis.com/v1beta/models?key=)" + apiKey);
+    const listRes = await fetch(`[https://generativelanguage.googleapis.com/v1beta/models?key=$](https://generativelanguage.googleapis.com/v1beta/models?key=$){encodeURIComponent(apiKey)}`);
     const listData = await listRes.json();
     const available = (listData?.models || []).filter(
       (m) => Array.isArray(m.supportedGenerationMethods) && m.supportedGenerationMethods.includes("generateContent")
@@ -92,11 +97,11 @@ export async function POST(req) {
         const text = retry.data?.candidates?.[0]?.content?.parts?.[0]?.text || "No response generated.";
         return NextResponse.json({ text });
       }
-      lastError = retry.data?.error?.message || lastError;
+      lastError = sanitizeError(retry.data?.error?.message || lastError);
     }
 
     return NextResponse.json({ error: lastError }, { status: 500 });
   } catch (e) {
-    return NextResponse.json({ error: e.message || "Server error" }, { status: 500 });
+    return NextResponse.json({ error: sanitizeError(e.message) }, { status: 500 });
   }
 }
