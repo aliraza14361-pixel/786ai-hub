@@ -4,11 +4,14 @@ const FENCE = String.fromCharCode(96).repeat(3);
 
 const MODE_PROMPTS = {
   chat: "You are 786AI, a fast, helpful, and friendly AI assistant built for 786 AI Hub (https://786ai-hub.vercel.app). Answer clearly in the user's language (English, Urdu, or Roman Urdu). When helpful, recommend free AI tools from 786 AI Hub.",
-  social: "You are 786AI Social Media Content Studio. Generate viral hooks, YouTube scripts, TikTok/Reels captions, hashtags, and content calendars ready to copy-paste.",
-  coding: "You are 786AI App & Code Builder. When asked to build a web app, calculator, game, or UI, output a complete, self-contained single-file HTML document with inline CSS and JavaScript inside a " + FENCE + "html code block so it runs immediately in live preview.",
-  video: "You are 786AI Video & Reels Director. Create scene-by-scene faceless video scripts, camera angles, voiceover lines, and detailed AI video generation prompts (for Kling, Hailuo, Runway).",
-  music: "You are 786AI Music & Lyrics Composer. Write structured song lyrics (Verse, Chorus, Bridge) along with Suno/Udio style music tags, tempo, mood, and instruments.",
-  automation: "You are 786AI AI Automation Architect. Design step-by-step no-code automation workflows (for Make.com, n8n, Zapier) with triggers, actions, prompts, and sample JSON payloads."
+  video: "You are 786AI Video Director (Create videos - Bring ideas to life). Create engaging scene-by-scene video scripts, hook lines, voiceover narration, camera directions, and ready-to-use AI video prompts for Kling, Runway, and Hailuo.",
+  music: "You are 786AI Music & Audio Composer (Create music - Make audio tracks). Write complete structured song lyrics (Intro, Verse, Chorus, Bridge, Outro) along with Suno/Udio style prompts, genre tags, BPM tempo, mood, and instruments.",
+  canvas: "You are 786AI Canvas Studio (Code, write, or make slides). When asked to build a web app, calculator, interactive presentation slides, or rich visual document, output a complete, self-contained single-file HTML document with modern dark/clean CSS and JavaScript inside a " + FENCE + "html code block so it renders immediately in Live Preview.",
+  coding: "You are 786AI Canvas Studio (Code, write, or make slides). Output a complete, self-contained single-file HTML document with inline CSS and JavaScript inside a " + FENCE + "html code block so it runs immediately in Live Preview.",
+  research: "You are 786AI Deep Research Analyst (Get detailed reports). Produce comprehensive, well-structured reports with an Executive Summary, Key Findings, Detailed Breakdown with headings and bullet points, Comparison Table if relevant, and Actionable Recommendations.",
+  learning: "You are 786AI Guided Learning Tutor (Get step-by-step help). Teach the user patiently step-by-step. Break complex topics into clear numbered steps, give simple real-world examples, and end with one short practice question to check understanding.",
+  think: "You are 786AI Deep Reasoning Engine (Think harder). Analyze the problem carefully using structured step-by-step logic: 1) Core Problem Breakdown, 2) Deep Step-by-Step Analysis, 3) Edge Cases & Verification, and 4) Clear Final Answer.",
+  automation: "You are 786AI Plugins & Automation Architect. Design step-by-step no-code workflows (Make.com, n8n, Zapier, APIs) with triggers, modules, prompts, and sample JSON payloads."
 };
 
 const MODEL_PERSONAS = {
@@ -41,28 +44,62 @@ async function callGemini(modelPath, apiKey, sys, contents) {
 
 export async function POST(req) {
   try {
-    const { prompt, mode = "chat", modelPersona = "786ai", messages = [] } = await req.json();
-    if (!prompt || !prompt.trim()) {
-      return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
+    const {
+      prompt,
+      mode = "chat",
+      modelPersona = "786ai",
+      messages = [],
+      imageBase64 = "",
+      imageMimeType = "image/jpeg",
+      fileText = "",
+      fileName = "",
+      personalContext = ""
+    } = await req.json();
+
+    if ((!prompt || !prompt.trim()) && !imageBase64 && !fileText) {
+      return NextResponse.json({ error: "Prompt, photo, or file is required" }, { status: 400 });
     }
+
     const rawKey = process.env.GEMINI_API_KEY || "";
     const apiKey = rawKey.replace(/[\s\r\n]+/g, "").trim();
     if (!apiKey) {
       return NextResponse.json({ error: "GEMINI_API_KEY not configured on server yet." }, { status: 500 });
     }
 
-    const sys =
+    let sys =
       mode === "chat"
         ? MODEL_PERSONAS[modelPersona] || MODEL_PERSONAS["786ai"]
         : MODE_PROMPTS[mode] || MODE_PROMPTS.chat;
 
-    let contents = [{ role: "user", parts: [{ text: prompt.trim() }] }];
-    if (mode === "chat" && Array.isArray(messages) && messages.length > 0) {
-      const recent = messages.slice(-10).map((m) => ({
+    if (personalContext && personalContext.trim()) {
+      sys += "\n\n[Personal Intelligence Active - User Preferences & Context]: " + personalContext.trim();
+    }
+
+    let finalUserPrompt = (prompt || "").trim();
+    if (fileText) {
+      finalUserPrompt += "\n\n--- Attached File (" + (fileName || "document") + ") ---\n" + fileText.slice(0, 15000);
+    }
+    if (!finalUserPrompt && imageBase64) {
+      finalUserPrompt = "Analyze this image in detail and explain everything helpful about it.";
+    }
+
+    let contents = [];
+    if (mode === "chat" && Array.isArray(messages) && messages.length > 1 && !imageBase64 && !fileText) {
+      contents = messages.slice(-10).map((m) => ({
         role: m.role === "assistant" ? "model" : "user",
         parts: [{ text: String(m.text || "") }]
       }));
-      contents = recent;
+    } else {
+      const userParts = [{ text: finalUserPrompt }];
+      if (imageBase64) {
+        userParts.push({
+          inlineData: {
+            mimeType: imageMimeType || "image/jpeg",
+            data: imageBase64
+          }
+        });
+      }
+      contents = [{ role: "user", parts: userParts }];
     }
 
     const candidates = [
