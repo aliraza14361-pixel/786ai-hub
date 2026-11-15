@@ -1,3 +1,4 @@
+import UnifiedAuthModal from "../components/UnifiedAuthModal";
 import { useState } from 'react';
 
 export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
@@ -46,12 +47,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
   return (
     <div className="fixed inset-0 bg-black/65 flex items-center justify-center z-50 p-4">
       <div className="bg-white dark:bg-gray-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-gray-200 dark:border-gray-800">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-            {isSignup ? 'Create 786 AI Account' : 'Login to 786 AI Hub'}
-          </h3>
-          <button type="button" onClick={onClose} className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 text-xl font-bold">✕</button>
-        </div>
+        <UnifiedAuthModal open={true} onClose={() => setShowAuthModal(false)} onSuccess={(u) => { if (typeof setUser === "function") setUser(u); }} />
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {isSignup && (
