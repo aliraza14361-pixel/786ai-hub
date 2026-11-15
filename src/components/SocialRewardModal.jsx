@@ -68,7 +68,7 @@ export default function SocialRewardModal() {
     };
 
     checkLogin();
-    const interval = setInterval(checkLogin, 2000);
+    const interval = setInterval(checkLogin, 2500);
     return () => {
       window.removeEventListener("open-social-reward", openHandler);
       clearInterval(interval);
@@ -117,10 +117,7 @@ export default function SocialRewardModal() {
 
       {open && (
         <div className="fixed inset-0 z-[100099] flex items-center justify-center p-4">
-          <div
-            className="fixed inset-0 bg-black/80"
-            onClick={() => setOpen(false)}
-          />
+          <div className="fixed inset-0 bg-black/80" onClick={() => setOpen(false)} />
           <div className="relative z-10 w-full max-w-md rounded-3xl bg-[#0d1320] border border-slate-700 shadow-2xl overflow-hidden text-slate-100">
             <div className="px-5 py-4 bg-gradient-to-r from-amber-500/20 via-cyan-500/15 to-blue-600/20 border-b border-slate-800 flex items-start justify-between gap-3">
               <div>
