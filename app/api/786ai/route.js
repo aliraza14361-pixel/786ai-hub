@@ -1,6 +1,28 @@
 import { NextResponse } from "next/server";
+import crypto from "crypto";
 
 const FENCE = String.fromCharCode(96).repeat(3);
+
+function getSecret() {
+  const raw = process.env.GEMINI_API_KEY || "786ai-hub-default-secret-key";
+  return raw.replace(/[\s\r\n]+/g, "").trim() || "786ai-hub-default-secret-key";
+}
+
+function verifyToken(token) {
+  if (!token || typeof token !== "string" || !token.includes(".")) return null;
+  const parts = token.split(".");
+  if (parts.length !== 2) return null;
+  const [data, sig] = parts;
+  const expected = crypto.createHmac("sha256", getSecret()).update(data).digest("base64url");
+  if (sig !== expected) return null;
+  try {
+    const parsed = JSON.parse(Buffer.from(data, "base64url").toString("utf8"));
+    if (!parsed.exp || parsed.exp < Date.now()) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
 
 const MODE_PROMPTS = {
   chat: "You are 786AI, a fast, helpful, and friendly AI assistant built for 786 AI Hub (https://786ai-hub.vercel.app). Answer clearly in the user's language (English, Urdu, or Roman Urdu). When helpful, recommend free AI tools from 786 AI Hub.",
@@ -44,6 +66,12 @@ async function callGemini(modelPath, apiKey, sys, contents) {
 
 export async function POST(req) {
   try {
+    const token = req.headers.get("x-studio-token") || "";
+    const user = verifyToken(token);
+    if (!user) {
+      return NextResponse.json({ error: "Please log in first to use 786AI Studio." }, { status: 401 });
+    }
+
     const {
       prompt,
       mode = "chat",
@@ -71,8 +99,10 @@ export async function POST(req) {
         ? MODEL_PERSONAS[modelPersona] || MODEL_PERSONAS["786ai"]
         : MODE_PROMPTS[mode] || MODE_PROMPTS.chat;
 
+    sys += "\n\n[Authenticated User]: Name: " + user.name + " (" + user.email + ").";
+
     if (personalContext && personalContext.trim()) {
-      sys += "\n\n[Personal Intelligence Active - User Preferences & Context]: " + personalContext.trim();
+      sys += "\n[Personal Intelligence Active - User Preferences]: " + personalContext.trim();
     }
 
     let finalUserPrompt = (prompt || "").trim();

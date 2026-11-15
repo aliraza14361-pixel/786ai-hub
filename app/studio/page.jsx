@@ -2,7 +2,9 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 
-const SESSIONS_KEY = "786ai_chat_sessions_v2";
+const AUTH_USER_KEY = "786ai_studio_user_v1";
+const REGISTERED_USERS_KEY = "786ai_registered_users_v1";
+const SESSIONS_PREFIX = "786ai_chat_sessions_";
 const PERSONAL_KEY = "786ai_personal_intel_v1";
 const MAX_SESSIONS = 25;
 const FENCE = String.fromCharCode(96).repeat(3);
@@ -267,6 +269,18 @@ function resizeImageFile(file) {
 }
 
 export default function StudioPage() {
+  // Authentication States
+  const [authChecked, setAuthChecked] = useState(false);
+  const [authUser, setAuthUser] = useState(null);
+  const [authMode, setAuthMode] = useState("login");
+  const [authName, setAuthName] = useState("");
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [authError, setAuthError] = useState("");
+  const [authLoading, setAuthLoading] = useState(false);
+
+  // Studio States
   const [selectedModel, setSelectedModel] = useState("786ai");
   const [activeTool, setActiveTool] = useState("chat");
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
@@ -275,7 +289,7 @@ export default function StudioPage() {
 
   // Personal Intelligence (Labs)
   const [personalEnabled, setPersonalEnabled] = useState(true);
-  const [personalNote, setPersonalNote] = useState("I am a creator & developer using 786 AI Hub. Give clear, practical answers.");
+  const [personalNote, setPersonalNote] = useState("Give clear, practical answers.");
   const [editingPersonal, setEditingPersonal] = useState(false);
 
   // Attachments (Photos, Camera, Files)
@@ -299,12 +313,15 @@ export default function StudioPage() {
   const cameraInputRef = useRef(null);
   const fileInputRef = useRef(null);
 
+  // Check existing login session on mount
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(SESSIONS_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) setSessions(parsed);
+      const savedUser = localStorage.getItem(AUTH_USER_KEY);
+      if (savedUser) {
+        const parsedUser = JSON.parse(savedUser);
+        if (parsedUser && parsedUser.email && parsedUser.token) {
+          setAuthUser(parsedUser);
+        }
       }
       const savedPersonal = localStorage.getItem(PERSONAL_KEY);
       if (savedPersonal) {
@@ -313,11 +330,133 @@ export default function StudioPage() {
         if (typeof p.note === "string") setPersonalNote(p.note);
       }
     } catch {}
+    setAuthChecked(true);
   }, []);
+
+  // Load user-specific chat history when authUser changes
+  useEffect(() => {
+    if (!authUser?.email) {
+      setSessions([]);
+      setMessages([]);
+      setCurrentSessionId(null);
+      return;
+    }
+    try {
+      const key = SESSIONS_PREFIX + authUser.email;
+      const saved = localStorage.getItem(key);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setSessions(parsed);
+          return;
+        }
+      }
+      setSessions([]);
+    } catch {
+      setSessions([]);
+    }
+  }, [authUser]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
+
+  const handleAuthSubmit = async (e) => {
+    e.preventDefault();
+    setAuthError("");
+    const cleanEmail = authEmail.trim().toLowerCase();
+    const cleanPass = authPassword;
+
+    if (!cleanEmail || !cleanEmail.includes("@")) {
+      setAuthError("Please enter a valid email address.");
+      return;
+    }
+    if (cleanPass.length < 6) {
+      setAuthError("Password must be at least 6 characters.");
+      return;
+    }
+    if (authMode === "signup" && !authName.trim()) {
+      setAuthError("Please enter your full name.");
+      return;
+    }
+
+    let registry = {};
+    try {
+      registry = JSON.parse(localStorage.getItem(REGISTERED_USERS_KEY) || "{}");
+    } catch {}
+
+    if (authMode === "signup" && registry[cleanEmail]) {
+      setAuthError("This email is already registered. Please switch to Log In.");
+      setAuthMode("login");
+      return;
+    }
+
+    if (authMode === "login" && registry[cleanEmail] && registry[cleanEmail].password !== cleanPass) {
+      setAuthError("Incorrect password. Please try again.");
+      return;
+    }
+
+    setAuthLoading(true);
+    try {
+      const resolvedName =
+        authMode === "signup"
+          ? authName.trim()
+          : registry[cleanEmail]?.name || "";
+
+      const res = await fetch("/api/studio-auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: authMode,
+          name: resolvedName,
+          email: cleanEmail,
+          password: cleanPass
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        setAuthError(data.error || "Login failed. Please try again.");
+        setAuthLoading(false);
+        return;
+      }
+
+      registry[cleanEmail] = {
+        name: data.user.name,
+        password: cleanPass
+      };
+      try {
+        localStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(registry));
+      } catch {}
+
+      const sessionUser = {
+        name: data.user.name,
+        email: data.user.email,
+        token: data.token
+      };
+      try {
+        localStorage.setItem(AUTH_USER_KEY, JSON.stringify(sessionUser));
+      } catch {}
+
+      setAuthUser(sessionUser);
+      setAuthPassword("");
+    } catch {
+      setAuthError("Network error. Please check your internet connection.");
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleLogout = () => {
+    try {
+      localStorage.removeItem(AUTH_USER_KEY);
+    } catch {}
+    setAuthUser(null);
+    setMessages([]);
+    setCurrentSessionId(null);
+    setSidebarOpen(false);
+    setSheetOpen(false);
+    setModelMenuOpen(false);
+  };
 
   const updatePersonalSettings = (enabled, note) => {
     setPersonalEnabled(enabled);
@@ -331,6 +470,8 @@ export default function StudioPage() {
   const activeToolObj = SHEET_TOOLS.find((t) => t.id === activeTool) || null;
 
   const persistSession = (sessionId, updatedMessages, modelId, firstPrompt) => {
+    if (!authUser?.email) return;
+    const storageKey = SESSIONS_PREFIX + authUser.email;
     setSessions((prev) => {
       const existing = prev.find((s) => s.id === sessionId);
       const title = existing?.title || (firstPrompt || "Media Chat").slice(0, 48);
@@ -348,7 +489,7 @@ export default function StudioPage() {
       const others = prev.filter((s) => s.id !== sessionId);
       const next = [sessionObj, ...others].slice(0, MAX_SESSIONS);
       try {
-        localStorage.setItem(SESSIONS_KEY, JSON.stringify(next));
+        localStorage.setItem(storageKey, JSON.stringify(next));
       } catch {}
       return next;
     });
@@ -375,10 +516,12 @@ export default function StudioPage() {
 
   const deleteSession = (e, id) => {
     e.stopPropagation();
+    if (!authUser?.email) return;
+    const storageKey = SESSIONS_PREFIX + authUser.email;
     setSessions((prev) => {
       const next = prev.filter((s) => s.id !== id);
       try {
-        localStorage.setItem(SESSIONS_KEY, JSON.stringify(next));
+        localStorage.setItem(storageKey, JSON.stringify(next));
       } catch {}
       return next;
     });
@@ -388,9 +531,10 @@ export default function StudioPage() {
   };
 
   const clearAllSessions = () => {
+    if (!authUser?.email) return;
     setSessions([]);
     try {
-      localStorage.removeItem(SESSIONS_KEY);
+      localStorage.removeItem(SESSIONS_PREFIX + authUser.email);
     } catch {}
     startNewChat();
   };
@@ -491,6 +635,7 @@ export default function StudioPage() {
   };
 
   const handleSend = async (customPrompt, overrideTool) => {
+    if (!authUser?.token) return;
     const textToSend = (customPrompt !== undefined ? customPrompt : input).trim();
     const toolToUse = overrideTool || activeTool;
     const currentImage = attachedImage;
@@ -524,14 +669,21 @@ export default function StudioPage() {
     setMessages(nextMessages);
     setLoading(true);
 
-    // 1. Create Images Mode (when no photo uploaded for vision)
+    // 1. Create Images Mode (Server-side proxy with auth token)
     if (toolToUse === "image" && !currentImage) {
       try {
         const imgRes = await fetch("/api/786ai/image", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "x-studio-token": authUser.token
+          },
           body: JSON.stringify({ prompt: textToSend })
         });
+        if (imgRes.status === 401) {
+          handleLogout();
+          return;
+        }
         const imgData = await imgRes.json();
         const aiMsg = imgData.imageUrl
           ? {
@@ -563,7 +715,7 @@ export default function StudioPage() {
       return;
     }
 
-    // 2. Gemini API (Chat, Vision Photos/Camera, Files, Canvas, Video, Music, Deep Research, Guided Learning, Think Harder, Plugins)
+    // 2. Gemini API (Authenticated with x-studio-token)
     try {
       const chatHistoryPayload = nextMessages
         .filter((m) => !m.imageUrl)
@@ -572,7 +724,10 @@ export default function StudioPage() {
 
       const res = await fetch("/api/786ai", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-studio-token": authUser.token
+        },
         body: JSON.stringify({
           prompt: textToSend,
           mode: toolToUse,
@@ -585,6 +740,12 @@ export default function StudioPage() {
           personalContext: personalEnabled ? personalNote : ""
         })
       });
+
+      if (res.status === 401) {
+        handleLogout();
+        return;
+      }
+
       const data = await res.json();
       const replyText = data.error ? "Error: " + data.error : data.text;
       const htmlCode = toolToUse === "canvas" || toolToUse === "coding" ? extractHtml(replyText) : "";
@@ -621,6 +782,164 @@ export default function StudioPage() {
     }
   };
 
+  if (!authChecked) {
+    return <div className="fixed inset-0 z-[10000] bg-[#080c14]" />;
+  }
+
+  // Mandatory Login / Sign-Up Gate Screen (OpenAI / ChatGPT Style)
+  if (!authUser) {
+    return (
+      <div className="fixed inset-0 z-[10000] bg-[#080c14] text-slate-100 flex flex-col justify-between overflow-y-auto px-4 py-6">
+        <div className="max-w-md w-full mx-auto flex items-center justify-between">
+          <Link href="/" className="text-xs font-semibold text-cyan-300 hover:text-cyan-200">
+            ← Back to 50 AI Tools
+          </Link>
+          <span className="px-2.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-[11px] font-bold text-cyan-300">
+            786AI STUDIO
+          </span>
+        </div>
+
+        <div className="max-w-md w-full mx-auto my-auto py-6">
+          <div className="bg-[#0e1422] border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-3xl mx-auto mb-4 shadow-lg">
+              ✨
+            </div>
+            <h1 className="text-2xl font-extrabold text-white text-center">
+              {authMode === "login" ? "Welcome back" : "Create your free account"}
+            </h1>
+            <p className="text-xs text-slate-400 text-center mt-1.5 mb-6">
+              Log in to access 786AI, DeepSeek, ChatGPT, Gemini, Canvas & Image Studio
+            </p>
+
+            {/* Login / Sign Up Switcher Tabs */}
+            <div className="grid grid-cols-2 gap-1 p-1 rounded-2xl bg-slate-950 border border-slate-800 mb-5">
+              <button
+                type="button"
+                onClick={() => { setAuthMode("login"); setAuthError(""); }}
+                className={`py-2 rounded-xl text-xs font-bold transition ${
+                  authMode === "login"
+                    ? "bg-cyan-500 text-slate-950 shadow"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                Log In
+              </button>
+              <button
+                type="button"
+                onClick={() => { setAuthMode("signup"); setAuthError(""); }}
+                className={`py-2 rounded-xl text-xs font-bold transition ${
+                  authMode === "signup"
+                    ? "bg-cyan-500 text-slate-950 shadow"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                Sign Up Free
+              </button>
+            </div>
+
+            {authError && (
+              <div className="mb-4 px-3.5 py-2.5 rounded-xl bg-rose-500/15 border border-rose-500/40 text-xs text-rose-300">
+                {authError}
+              </div>
+            )}
+
+            <form onSubmit={handleAuthSubmit} className="space-y-3.5">
+              {authMode === "signup" && (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Full Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={authName}
+                    onChange={(e) => setAuthName(e.target.value)}
+                    placeholder="Enter your name"
+                    className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-400 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none"
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Email Address</label>
+                <input
+                  type="email"
+                  required
+                  value={authEmail}
+                  onChange={(e) => setAuthEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-400 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Password</label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    minLength={6}
+                    value={authPassword}
+                    onChange={(e) => setAuthPassword(e.target.value)}
+                    placeholder="Minimum 6 characters"
+                    className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-400 rounded-xl px-3.5 py-2.5 pr-12 text-sm text-white focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-white"
+                  >
+                    {showPassword ? "Hide" : "Show"}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={authLoading}
+                className="w-full py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-extrabold text-sm shadow-lg transition disabled:opacity-50 mt-2"
+              >
+                {authLoading
+                  ? "Please wait..."
+                  : authMode === "login"
+                  ? "Continue to 786AI Studio →"
+                  : "Create Free Account & Start →"}
+              </button>
+            </form>
+
+            <div className="mt-5 pt-4 border-t border-slate-800/80 text-center text-xs text-slate-400">
+              {authMode === "login" ? (
+                <>
+                  Don&apos;t have an account?{" "}
+                  <button
+                    type="button"
+                    onClick={() => { setAuthMode("signup"); setAuthError(""); }}
+                    className="text-cyan-400 font-bold hover:underline"
+                  >
+                    Sign up free
+                  </button>
+                </>
+              ) : (
+                <>
+                  Already have an account?{" "}
+                  <button
+                    type="button"
+                    onClick={() => { setAuthMode("login"); setAuthError(""); }}
+                    className="text-cyan-400 font-bold hover:underline"
+                  >
+                    Log in
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <p className="text-center text-[11px] text-slate-500">
+          100% Free Access • Your chats are saved privately to your account
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-[10000] flex flex-col bg-[#080c14] text-slate-100 overflow-hidden">
       {/* Hidden File Inputs for Photos, Camera & Files */}
@@ -647,7 +966,7 @@ export default function StudioPage() {
         className="hidden"
       />
 
-      {/* Slide-Over Chat History Sidebar */}
+      {/* Slide-Over Chat History Sidebar with User Profile & Logout */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-50 flex">
           <div
@@ -680,7 +999,7 @@ export default function StudioPage() {
             <div className="flex-1 overflow-y-auto px-3 space-y-1.5">
               <div className="flex items-center justify-between px-1 py-1">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                  Recent Chats ({sessions.length})
+                  Your Chats ({sessions.length})
                 </span>
                 {sessions.length > 0 && (
                   <button
@@ -732,21 +1051,43 @@ export default function StudioPage() {
               )}
             </div>
 
-            <div className="p-3 border-t border-slate-800 space-y-1.5">
-              <Link
-                href="/"
-                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-xs font-semibold text-cyan-300"
-              >
-                <span>🏠</span>
-                <span>50 AI Tools Directory</span>
-              </Link>
-              <Link
-                href="/blog"
-                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-xs font-semibold text-slate-300"
-              >
-                <span>📚</span>
-                <span>AI Guides & Tutorials</span>
-              </Link>
+            {/* Account Profile + Logout + Navigation */}
+            <div className="p-3 border-t border-slate-800 space-y-2">
+              <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-950 border border-slate-800">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-400 to-blue-600 text-slate-950 font-extrabold text-xs flex items-center justify-center shrink-0">
+                    {authUser.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-white truncate">{authUser.name}</div>
+                    <div className="text-[10px] text-slate-400 truncate">{authUser.email}</div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="px-2.5 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-[11px] font-bold text-rose-300 shrink-0"
+                >
+                  Logout
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-1.5">
+                <Link
+                  href="/"
+                  className="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-xs font-semibold text-cyan-300"
+                >
+                  <span>🏠</span>
+                  <span>50 Tools</span>
+                </Link>
+                <Link
+                  href="/blog"
+                  className="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-xs font-semibold text-slate-300"
+                >
+                  <span>📚</span>
+                  <span>AI Guides</span>
+                </Link>
+              </div>
             </div>
           </aside>
         </div>
@@ -760,10 +1101,8 @@ export default function StudioPage() {
             onClick={() => setSheetOpen(false)}
           />
           <div className="relative z-10 w-full max-w-2xl mx-auto bg-[#16181d] border-t border-slate-700/80 rounded-t-3xl px-4 pt-3 pb-6 shadow-2xl max-h-[85vh] overflow-y-auto">
-            {/* Drag Handle */}
             <div className="w-10 h-1 rounded-full bg-slate-600 mx-auto mb-4" />
 
-            {/* Top 3 Large Media Cards: Photos, Camera, Files */}
             <div className="grid grid-cols-3 gap-2.5 mb-4">
               <button
                 type="button"
@@ -791,7 +1130,6 @@ export default function StudioPage() {
               </button>
             </div>
 
-            {/* Vertical Tool List (Create images, Create videos, Create music, Canvas, Deep research, Guided learning, Think harder, Plugins) */}
             <div className="space-y-1">
               {SHEET_TOOLS.map((tool) => {
                 const isSelected = activeTool === tool.id;
@@ -823,7 +1161,6 @@ export default function StudioPage() {
               })}
             </div>
 
-            {/* Bottom Personal Intelligence Toggle Row (Matching Screenshot) */}
             <div className="mt-3 pt-3 border-t border-slate-800">
               <div className="flex items-center justify-between gap-3 px-2 py-1.5">
                 <div className="flex items-center gap-3 min-w-0">
@@ -900,12 +1237,11 @@ export default function StudioPage() {
             type="button"
             onClick={() => setSidebarOpen(true)}
             className="w-9 h-9 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 flex items-center justify-center text-slate-200"
-            title="Chat History"
+            title="Chat History & Account"
           >
             ☰
           </button>
 
-          {/* Model Switcher Dropdown */}
           <div className="relative">
             <button
               type="button"
@@ -985,12 +1321,14 @@ export default function StudioPage() {
           >
             + New
           </button>
-          <Link
-            href="/"
-            className="hidden sm:inline-flex px-3 py-1.5 rounded-full bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs font-semibold text-cyan-300"
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(true)}
+            className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-400 to-blue-600 text-slate-950 font-extrabold text-xs flex items-center justify-center shrink-0"
+            title={authUser.name}
           >
-            50 Tools
-          </Link>
+            {authUser.name.charAt(0).toUpperCase()}
+          </button>
         </div>
       </header>
 
@@ -1005,7 +1343,7 @@ export default function StudioPage() {
                 </div>
                 <div className="text-left">
                   <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
-                    Hi! I&apos;m {activeModelObj.name}
+                    Hi {authUser.name.split(" ")[0]}! I&apos;m {activeModelObj.name}
                   </h1>
                   <p className="text-xs text-cyan-300 font-semibold">
                     {activeModelObj.tag} • Tap + for Photos, Camera, Canvas & Deep Research
@@ -1017,7 +1355,6 @@ export default function StudioPage() {
                 Ask anything in English, Urdu, or Roman Urdu — or tap <strong className="text-white">+</strong> below to upload photos, scan with camera, create images, build Canvas apps, or run Deep Research.
               </p>
 
-              {/* Quick Start Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-left">
                 <button
                   type="button"
@@ -1173,7 +1510,6 @@ export default function StudioPage() {
       {/* Sticky Bottom Composer Bar */}
       <footer className="shrink-0 px-3 sm:px-6 pb-3 pt-2 bg-[#080c14] border-t border-slate-800/80 relative z-30">
         <div className="max-w-3xl mx-auto">
-          {/* Attached Photo or File Preview Pill */}
           {(attachedImage || attachedFile) && (
             <div className="mb-2 flex items-center gap-2">
               {attachedImage && (
@@ -1205,7 +1541,6 @@ export default function StudioPage() {
             </div>
           )}
 
-          {/* Active Tool Chip & Presets */}
           {activeToolObj && (
             <div className="mb-2 flex items-center gap-2 overflow-x-auto pb-1">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-xs font-bold shrink-0">
@@ -1233,7 +1568,6 @@ export default function StudioPage() {
             </div>
           )}
 
-          {/* Input Pill (Matching Gemini & ChatGPT Mobile Bar) */}
           <form
             onSubmit={(e) => { e.preventDefault(); handleSend(); }}
             className="flex items-center gap-2 bg-slate-900 border border-slate-700/90 focus-within:border-cyan-400 rounded-full px-2.5 py-1.5 shadow-lg"

@@ -1,4 +1,26 @@
 import { NextResponse } from "next/server";
+import crypto from "crypto";
+
+function getSecret() {
+  const raw = process.env.GEMINI_API_KEY || "786ai-hub-default-secret-key";
+  return raw.replace(/[\s\r\n]+/g, "").trim() || "786ai-hub-default-secret-key";
+}
+
+function verifyToken(token) {
+  if (!token || typeof token !== "string" || !token.includes(".")) return null;
+  const parts = token.split(".");
+  if (parts.length !== 2) return null;
+  const [data, sig] = parts;
+  const expected = crypto.createHmac("sha256", getSecret()).update(data).digest("base64url");
+  if (sig !== expected) return null;
+  try {
+    const parsed = JSON.parse(Buffer.from(data, "base64url").toString("utf8"));
+    if (!parsed.exp || parsed.exp < Date.now()) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
 
 async function fetchImageAsDataUrl(targetUrl) {
   const res = await fetch(targetUrl, {
@@ -17,6 +39,12 @@ async function fetchImageAsDataUrl(targetUrl) {
 
 export async function POST(req) {
   try {
+    const token = req.headers.get("x-studio-token") || "";
+    const user = verifyToken(token);
+    if (!user) {
+      return NextResponse.json({ error: "Please log in first to generate images." }, { status: 401 });
+    }
+
     const { prompt } = await req.json();
     if (!prompt || !prompt.trim()) {
       return NextResponse.json({ error: "Image prompt is required." }, { status: 400 });
