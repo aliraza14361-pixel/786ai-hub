@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 
-const AUTH_USER_KEY = "786ai_studio_user_v1";
+const AUTH_USER_KEY = "786ai_user_session_v1"; // Uses main home page session key
 const REGISTERED_USERS_KEY = "786ai_registered_users_v1";
 const SESSIONS_PREFIX = "786ai_chat_sessions_";
 const PERSONAL_KEY = "786ai_personal_intel_v1";
