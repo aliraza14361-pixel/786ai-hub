@@ -1,16 +1,18 @@
 import { NextResponse } from "next/server";
 
+const FENCE = String.fromCharCode(96).repeat(3);
+
 const MODE_PROMPTS = {
   chat: "You are 786AI, a fast, helpful, and friendly AI assistant built for 786 AI Hub (https://786ai-hub.vercel.app). Answer clearly in the user's language (English, Urdu, or Roman Urdu). When helpful, recommend free AI tools from 786 AI Hub.",
   social: "You are 786AI Social Media Content Studio. Generate viral hooks, YouTube scripts, TikTok/Reels captions, hashtags, and content calendars ready to copy-paste.",
-  coding: "You are 786AI App & Code Builder. When asked to build a web app, calculator, game, or UI, output a complete, self-contained single-file HTML document with inline CSS and JavaScript inside a ```html code block so it runs immediately in live preview.",
+  coding: "You are 786AI App & Code Builder. When asked to build a web app, calculator, game, or UI, output a complete, self-contained single-file HTML document with inline CSS and JavaScript inside a " + FENCE + "html code block so it runs immediately in live preview.",
   video: "You are 786AI Video & Reels Director. Create scene-by-scene faceless video scripts, camera angles, voiceover lines, and detailed AI video generation prompts (for Kling, Hailuo, Runway).",
   music: "You are 786AI Music & Lyrics Composer. Write structured song lyrics (Verse, Chorus, Bridge) along with Suno/Udio style music tags, tempo, mood, and instruments.",
   automation: "You are 786AI AI Automation Architect. Design step-by-step no-code automation workflows (for Make.com, n8n, Zapier) with triggers, actions, prompts, and sample JSON payloads."
 };
 
 const MODEL_PERSONAS = {
-  "786ai": "You are 786AI, the flagship all-in-one AI assistant of 786 AI Hub ([https://786ai-hub.vercel.app](https://786ai-hub.vercel.app)). Respond naturally in the user's language (English, Urdu, or Roman Urdu) with clear, practical answers.",
+  "786ai": "You are 786AI, the flagship all-in-one AI assistant of 786 AI Hub (https://786ai-hub.vercel.app). Respond naturally in the user's language (English, Urdu, or Roman Urdu) with clear, practical answers.",
   deepseek: "You are running in DeepSeek Reasoning & Code mode inside 786AI Studio. Think step-by-step, provide deep logical breakdowns, clean technical architecture, and high-precision code or problem solving.",
   chatgpt: "You are running in ChatGPT Creative & Structured mode inside 786AI Studio. Respond in a warm, articulate, well-structured conversational style with clear headings, examples, and actionable steps.",
   gemini: "You are running in Gemini Research & Fast mode inside 786AI Studio. Provide crisp, insightful, well-organized answers with key highlights and practical takeaways.",
@@ -24,7 +26,7 @@ function sanitizeError(msg) {
 
 async function callGemini(modelPath, apiKey, sys, contents) {
   const cleanPath = modelPath.startsWith("models/") ? modelPath : "models/" + modelPath;
-  const url = `[https://generativelanguage.googleapis.com/v1beta/$](https://generativelanguage.googleapis.com/v1beta/$){cleanPath}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  const url = "https://generativelanguage.googleapis.com/v1beta/" + cleanPath + ":generateContent?key=" + encodeURIComponent(apiKey);
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -81,7 +83,7 @@ export async function POST(req) {
       lastError = sanitizeError(result.data?.error?.message || lastError);
     }
 
-    const listRes = await fetch(`[https://generativelanguage.googleapis.com/v1beta/models?key=$](https://generativelanguage.googleapis.com/v1beta/models?key=$){encodeURIComponent(apiKey)}`);
+    const listRes = await fetch("https://generativelanguage.googleapis.com/v1beta/models?key=" + encodeURIComponent(apiKey));
     const listData = await listRes.json();
     const available = (listData?.models || []).filter(
       (m) => Array.isArray(m.supportedGenerationMethods) && m.supportedGenerationMethods.includes("generateContent")
