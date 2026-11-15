@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 export default function Footer() {
   return (
-    <footer className="w-full mt-16 border-t border-slate-800/80 bg-slate-950 text-slate-400">
+    <footer className="w-full mt-16 border-t border-slate-800/80 bg-slate-950 text-slate-400 pb-28 sm:pb-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="text-center md:text-left">
           <p className="text-white font-bold text-base">786 AI Hub © 2026</p>

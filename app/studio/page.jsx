@@ -1526,7 +1526,7 @@ export default function StudioPage() {
       </main>
 
       {/* Sticky Bottom Composer Bar */}
-      <footer className="shrink-0 px-3 sm:px-6 pb-3 pt-2 bg-[#080c14] border-t border-slate-800/80 relative z-30">
+      <footer className="shrink-0 px-3 sm:px-6 pb-3 pt-2 bg-[#080c14] border-t border-slate-800/80 relative z-30 pb-28 sm:pb-16">
         <div className="max-w-3xl mx-auto">
           {(attachedImage || attachedFile) && (
             <div className="mb-2 flex items-center gap-2">
