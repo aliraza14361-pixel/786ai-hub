@@ -6,8 +6,23 @@ const MODE_PROMPTS = {
   coding: "You are 786AI App & Code Builder. When asked to build a web app, calculator, game, or UI, output a complete, self-contained single-file HTML document with inline CSS and JavaScript inside a ```html code block so it runs immediately in live preview.",
   video: "You are 786AI Video & Reels Director. Create scene-by-scene faceless video scripts, camera angles, voiceover lines, and detailed AI video generation prompts (for Kling, Hailuo, Runway).",
   music: "You are 786AI Music & Lyrics Composer. Write structured song lyrics (Verse, Chorus, Bridge) along with Suno/Udio style music tags, tempo, mood, and instruments.",
-  automation: "You are 786AI Automation Architect. Design step-by-step no-code automation workflows (for Make.com, n8n, Zapier) with triggers, actions, prompts, and sample JSON payloads."
+  automation: "You are 786AI AI Automation Architect. Design step-by-step no-code automation workflows (for Make.com, n8n, Zapier) with triggers, actions, prompts, and sample JSON payloads."
 };
+
+async function callGemini(modelPath, apiKey, sys, prompt) {
+  const cleanPath = modelPath.startsWith("models/") ? modelPath : "models/" + modelPath;
+  const url = "https://generativelanguage.googleapis.com/v1beta/" + cleanPath + ":generateContent?key=" + apiKey;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: sys }] },
+      contents: [{ role: "user", parts: [{ text: prompt }] }]
+    })
+  });
+  const data = await res.json();
+  return { ok: res.ok, status: res.status, data };
+}
 
 export async function POST(req) {
   try {
@@ -19,24 +34,46 @@ export async function POST(req) {
     if (!apiKey) {
       return NextResponse.json({ error: "GEMINI_API_KEY not configured on server yet." }, { status: 500 });
     }
+
     const sys = MODE_PROMPTS[mode] || MODE_PROMPTS.chat;
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.0-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: sys }] },
-          contents: [{ role: "user", parts: [{ text: prompt }] }]
-        })
+    const candidates = [
+      "gemini-3-flash-preview",
+      "gemini-2.5-flash",
+      "gemini-flash-latest",
+      "gemini-2.0-flash"
+    ];
+
+    let lastError = "AI request failed";
+
+    for (const model of candidates) {
+      const result = await callGemini(model, apiKey, sys, prompt);
+      if (result.ok) {
+        const text = result.data?.candidates?.[0]?.content?.parts?.[0]?.text || "No response generated.";
+        return NextResponse.json({ text });
       }
-    );
-    const data = await res.json();
-    if (!res.ok) {
-      return NextResponse.json({ error: data?.error?.message || "AI request failed" }, { status: 500 });
+      lastError = result.data?.error?.message || lastError;
     }
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "No response generated.";
-    return NextResponse.json({ text });
+
+    const listRes = await fetch("https://generativelanguage.googleapis.com/v1beta/models?key=" + apiKey);
+    const listData = await listRes.json();
+    const available = (listData?.models || []).filter(
+      (m) => Array.isArray(m.supportedGenerationMethods) && m.supportedGenerationMethods.includes("generateContent")
+    );
+    const picked =
+      available.find((m) => m.name.includes("flash") && !m.name.includes("lite")) ||
+      available.find((m) => m.name.includes("gemini")) ||
+      available[0];
+
+    if (picked) {
+      const retry = await callGemini(picked.name, apiKey, sys, prompt);
+      if (retry.ok) {
+        const text = retry.data?.candidates?.[0]?.content?.parts?.[0]?.text || "No response generated.";
+        return NextResponse.json({ text });
+      }
+      lastError = retry.data?.error?.message || lastError;
+    }
+
+    return NextResponse.json({ error: lastError }, { status: 500 });
   } catch (e) {
     return NextResponse.json({ error: e.message || "Server error" }, { status: 500 });
   }
