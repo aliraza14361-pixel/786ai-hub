@@ -13,6 +13,120 @@ const MODES = [
   { id: "social", label: "Social Media Content", icon: "📱", placeholder: "Enter your topic for viral TikTok/Reels hooks, captions & hashtags..." }
 ];
 
+function renderInline(text) {
+  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\(https?:\/\/[^\s)]+\))/g);
+  return parts.map((part, i) => {
+    if (!part) return null;
+    if (part.startsWith("**") && part.endsWith("**") && part.length > 4) {
+      return <strong key={i} className="font-bold text-white">{part.slice(2, -2)}</strong>;
+    }
+    if (part.startsWith("`") && part.endsWith("`") && part.length > 2) {
+      return <code key={i} className="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-300 font-mono text-xs">{part.slice(1, -1)}</code>;
+    }
+    const linkMatch = part.match(/^\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)$/);
+    if (linkMatch) {
+      return (
+        <a key={i} href={linkMatch[2]} target="_blank" rel="noreferrer" className="text-cyan-400 underline hover:text-cyan-300">
+          {linkMatch[1]}
+        </a>
+      );
+    }
+    return part;
+  });
+}
+
+function CodeBlock({ raw }) {
+  const [copied, setCopied] = useState(false);
+  const firstLineEnd = raw.indexOf("\n");
+  const lang = firstLineEnd !== -1 ? raw.slice(3, firstLineEnd).trim() || "code" : "code";
+  const code = firstLineEnd !== -1 ? raw.slice(firstLineEnd + 1, -3).trim() : raw.slice(3, -3).trim();
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="my-3 rounded-xl overflow-hidden border border-slate-700 bg-slate-950">
+      <div className="flex items-center justify-between px-3 py-1.5 bg-slate-800/80 border-b border-slate-700">
+        <span className="text-[11px] font-mono uppercase text-cyan-300">{lang}</span>
+        <button onClick={handleCopy} className="text-xs text-slate-300 hover:text-white">
+          {copied ? "Copied!" : "Copy Code"}
+        </button>
+      </div>
+      <pre className="p-3 overflow-x-auto text-xs text-slate-200 font-mono leading-relaxed">{code}</pre>
+    </div>
+  );
+}
+
+function FormattedOutput({ content }) {
+  const segments = content.split(/(```[\w-]*\n[\s\S]*?```)/g);
+
+  return (
+    <div className="space-y-1">
+      {segments.map((seg, idx) => {
+        if (!seg) return null;
+        if (seg.startsWith("```") && seg.endsWith("```")) {
+          return <CodeBlock key={idx} raw={seg} />;
+        }
+
+        const lines = seg.split("\n");
+        return (
+          <div key={idx}>
+            {lines.map((line, lIdx) => {
+              const trimmed = line.trim();
+              if (!trimmed) return <div key={lIdx} className="h-2" />;
+              if (trimmed === "---" || trimmed === "***") {
+                return <hr key={lIdx} className="my-4 border-slate-800" />;
+              }
+              if (trimmed.startsWith("#### ")) {
+                return <h4 key={lIdx} className="text-base font-bold text-cyan-300 mt-4 mb-1">{renderInline(trimmed.slice(5))}</h4>;
+              }
+              if (trimmed.startsWith("### ")) {
+                return <h3 key={lIdx} className="text-lg font-extrabold text-white mt-5 mb-2">{renderInline(trimmed.slice(4))}</h3>;
+              }
+              if (trimmed.startsWith("## ")) {
+                return <h2 key={lIdx} className="text-xl font-extrabold text-white mt-5 mb-2">{renderInline(trimmed.slice(3))}</h2>;
+              }
+              if (trimmed.startsWith("> ")) {
+                return (
+                  <blockquote key={lIdx} className="border-l-2 border-cyan-500 pl-3 my-2 text-sm text-slate-300 italic">
+                    {renderInline(trimmed.slice(2))}
+                  </blockquote>
+                );
+              }
+              const bulletMatch = line.match(/^\s*[\*\-]\s+(.*)/);
+              if (bulletMatch) {
+                return (
+                  <div key={lIdx} className="flex items-start gap-2 text-sm text-slate-200 leading-relaxed my-1 pl-1">
+                    <span className="text-cyan-400 font-bold mt-0.5">•</span>
+                    <span className="flex-1">{renderInline(bulletMatch[1])}</span>
+                  </div>
+                );
+              }
+              const numMatch = line.match(/^\s*(\d+\.)\s+(.*)/);
+              if (numMatch) {
+                return (
+                  <div key={lIdx} className="flex items-start gap-2 text-sm text-slate-200 leading-relaxed my-1 pl-1">
+                    <span className="text-cyan-400 font-bold min-w-[20px]">{numMatch[1]}</span>
+                    <span className="flex-1">{renderInline(numMatch[2])}</span>
+                  </div>
+                );
+              }
+              return (
+                <p key={lIdx} className="text-sm text-slate-200 leading-relaxed my-1">
+                  {renderInline(line)}
+                </p>
+              );
+            })}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function StudioPage() {
   const [mode, setMode] = useState("chat");
   const [prompt, setPrompt] = useState("");
@@ -20,12 +134,34 @@ export default function StudioPage() {
   const [imageUrl, setImageUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [speaking, setSpeaking] = useState(false);
+  const [copiedAll, setCopiedAll] = useState(false);
 
   const activeMode = MODES.find((m) => m.id === mode) || MODES[0];
 
   const extractHtml = (text) => {
     const match = text.match(/```html([\s\S]*?)```/i);
     return match ? match[1].trim() : text.includes("<html") ? text : "";
+  };
+
+  const previewHtml = mode === "coding" ? extractHtml(output) : "";
+
+  const handleDownloadApp = () => {
+    if (!previewHtml) return;
+    const blob = new Blob([previewHtml], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `786ai-app-${Date.now()}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleCopyAll = () => {
+    navigator.clipboard.writeText(output);
+    setCopiedAll(true);
+    setTimeout(() => setCopiedAll(false), 2000);
   };
 
   const handleRun = async (e) => {
@@ -50,7 +186,7 @@ export default function StudioPage() {
         utter.onstart = () => setSpeaking(true);
         utter.onend = () => setSpeaking(false);
         window.speechSynthesis.speak(utter);
-        setOutput("Playing voiceover directly in your browser. You can also switch to AI Chat to write a script first!");
+        setOutput("Playing voiceover directly in your browser. You can also switch to **AI Chat & Assistant** to write a script first!");
       } else {
         setOutput("Voice synthesis is not supported in this browser.");
       }
@@ -72,8 +208,6 @@ export default function StudioPage() {
       setLoading(false);
     }
   };
-
-  const previewHtml = mode === "coding" ? extractHtml(output) : "";
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 px-4 py-8">
@@ -146,23 +280,31 @@ export default function StudioPage() {
 
         {previewHtml && (
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 mb-6">
-            <div className="text-xs font-bold text-cyan-300 mb-2">LIVE APP PREVIEW</div>
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <span className="text-xs font-bold text-cyan-300">LIVE APP PREVIEW</span>
+              <button
+                onClick={handleDownloadApp}
+                className="px-4 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs"
+              >
+                ⬇ Download App (.html)
+              </button>
+            </div>
             <iframe title="786AI Live Preview" srcDoc={previewHtml} className="w-full h-96 bg-white rounded-xl border border-slate-700" />
           </div>
         )}
 
         {output && (
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-800">
               <span className="text-xs font-bold text-cyan-300">786AI OUTPUT</span>
               <button
-                onClick={() => navigator.clipboard.writeText(output)}
+                onClick={handleCopyAll}
                 className="px-3 py-1 rounded-lg bg-slate-800 text-xs text-slate-200 hover:bg-slate-700"
               >
-                Copy Output
+                {copiedAll ? "Copied!" : "Copy Output"}
               </button>
             </div>
-            <pre className="whitespace-pre-wrap font-sans text-sm text-slate-200 leading-relaxed">{output}</pre>
+            <FormattedOutput content={output} />
           </div>
         )}
       </div>
