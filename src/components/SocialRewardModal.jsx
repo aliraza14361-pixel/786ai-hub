@@ -43,24 +43,36 @@ export default function SocialRewardModal() {
   const [credits, setCredits] = useState(0);
 
   useEffect(() => {
+    const openHandler = () => setOpen(true);
+    window.addEventListener("open-social-reward", openHandler);
+
     try {
       const savedClaimed = JSON.parse(localStorage.getItem("786ai_claimed_socials") || "[]");
       const savedCredits = Number(localStorage.getItem("786ai_bonus_credits") || "0");
       setClaimed(Array.isArray(savedClaimed) ? savedClaimed : []);
       setCredits(savedCredits);
-
-      const hasAuth = Object.keys(localStorage).some(
-        (k) => k.startsWith("sb-") && k.endsWith("-auth-token") && localStorage.getItem(k)
-      );
-      const alreadyPrompted = localStorage.getItem("786ai_reward_prompted");
-      if (hasAuth && !alreadyPrompted && savedClaimed.length < PLATFORMS.length) {
-        const timer = setTimeout(() => {
-          setOpen(true);
-          localStorage.setItem("786ai_reward_prompted", "1");
-        }, 1400);
-        return () => clearTimeout(timer);
-      }
     } catch {}
+
+    const checkLogin = () => {
+      try {
+        const hasAuth = Object.keys(localStorage).some(
+          (k) => k.startsWith("sb-") && k.endsWith("-auth-token") && localStorage.getItem(k)
+        );
+        const alreadyPrompted = localStorage.getItem("786ai_reward_prompted");
+        const savedClaimed = JSON.parse(localStorage.getItem("786ai_claimed_socials") || "[]");
+        if (hasAuth && !alreadyPrompted && savedClaimed.length < PLATFORMS.length) {
+          localStorage.setItem("786ai_reward_prompted", "1");
+          setTimeout(() => setOpen(true), 1200);
+        }
+      } catch {}
+    };
+
+    checkLogin();
+    const interval = setInterval(checkLogin, 2000);
+    return () => {
+      window.removeEventListener("open-social-reward", openHandler);
+      clearInterval(interval);
+    };
   }, []);
 
   const handleFollowAndClaim = (platform) => {
@@ -84,7 +96,7 @@ export default function SocialRewardModal() {
         return nextClaimed;
       });
       setVerifying(null);
-    }, 2800);
+    }, 2500);
   };
 
   const maxCredits = PLATFORMS.length * 5;
@@ -95,7 +107,7 @@ export default function SocialRewardModal() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="fixed bottom-20 right-4 z-[9990] inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#111827]/95 hover:bg-slate-800 border border-amber-500/40 text-amber-300 text-[11px] font-extrabold shadow-lg backdrop-blur-xs transition"
+        className="fixed bottom-24 right-4 z-[99999] inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 hover:opacity-95 text-slate-950 text-xs font-extrabold shadow-xl transition"
       >
         <span>🎁</span>
         <span>
@@ -104,13 +116,13 @@ export default function SocialRewardModal() {
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-[10080] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100099] flex items-center justify-center p-4">
           <div
-            className="fixed inset-0 bg-black/80 backdrop-blur-xs"
+            className="fixed inset-0 bg-black/80"
             onClick={() => setOpen(false)}
           />
-          <div className="relative z-10 w-full max-w-md rounded-3xl bg-[#0d1320] border border-slate-800 shadow-2xl overflow-hidden text-slate-100">
-            <div className="px-5 py-4 bg-gradient-to-r from-amber-500/15 via-cyan-500/15 to-blue-600/15 border-b border-slate-800 flex items-start justify-between gap-3">
+          <div className="relative z-10 w-full max-w-md rounded-3xl bg-[#0d1320] border border-slate-700 shadow-2xl overflow-hidden text-slate-100">
+            <div className="px-5 py-4 bg-gradient-to-r from-amber-500/20 via-cyan-500/15 to-blue-600/20 border-b border-slate-800 flex items-start justify-between gap-3">
               <div>
                 <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 mb-1.5">
                   🎁 Community Reward
@@ -126,7 +138,7 @@ export default function SocialRewardModal() {
                 type="button"
                 onClick={() => setOpen(false)}
                 aria-label="Close"
-                className="w-8 h-8 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-xs shrink-0"
+                className="w-8 h-8 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white flex items-center justify-center text-xs shrink-0"
               >
                 ✕
               </button>
@@ -146,7 +158,7 @@ export default function SocialRewardModal() {
                 return (
                   <div
                     key={p.id}
-                    className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-slate-900/80 border border-slate-800/90"
+                    className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-slate-900/90 border border-slate-800"
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-9 h-9 rounded-xl bg-slate-800 flex items-center justify-center text-lg shrink-0">
