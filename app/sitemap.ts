@@ -31,5 +31,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 1.0,
     },
     ...toolUrls,
+  ,
+    { url: "https://786ai-hub.vercel.app/blog", lastModified: new Date(), changeFrequency: "weekly", priority: 0.85 },
+    { url: "https://786ai-hub.vercel.app/blog/best-free-ai-tools-creators-developers-2026", lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
+    { url: "https://786ai-hub.vercel.app/blog/automate-social-media-make-com-ai-2026", lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
+    { url: "https://786ai-hub.vercel.app/blog/best-ai-voice-generators-faceless-videos-2026", lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
+    { url: "https://786ai-hub.vercel.app/blog/ai-copywriting-seo-content-workflow-2026", lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 }
   ];
 }
