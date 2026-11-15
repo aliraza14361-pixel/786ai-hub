@@ -153,91 +153,129 @@ export default function Home() {
           <h1 style={{ fontSize: '22px', fontWeight: '900', background: 'linear-gradient(to right, #38bdf8, #a855f7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', margin: 0 }}><span className="whitespace-nowrap shrink-0">786 AI Hub</span></h1>
         </div>
 
-        <div className="hidden md:flex items-center gap-2 flex-wrap">
-            
-          <button onClick={() => setTheme(isDark ? 'light' : 'dark')} style={{ backgroundColor: cardBg, color: textColor, border: `1px solid ${borderCol}`, borderRadius: '20px', padding: '6px 14px', cursor: 'pointer', fontWeight: '700' }}>
-            {isDark ? '☀️ Light' : '🌙 Dark'}
-          </button>
-          <button onClick={() => setLang(lang === 'en' ? 'ur' : 'en')} style={{ backgroundColor: cardBg, color: '#38bdf8', border: `1px solid ${borderCol}`, borderRadius: '20px', padding: '6px 14px', cursor: 'pointer', fontWeight: '700' }}>
-            {lang === 'en' ? 'اردو' : 'English'}
-          </button>
-
-          {user ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '12px', color: '#cbd5e1' }}>Hi, {user.name || user.email?.split('@')[0]}</span>
-              <button onClick={logout} style={{ backgroundColor: '#7c3aed', color: '#fff', border: 'none', borderRadius: '20px', padding: '7px 14px', cursor: 'pointer', fontWeight: '700' }}>Logout</button>
-            </div>
-          ) : (
-            <button onClick={() => setAuthModalOpen(true)} style={{ backgroundColor: '#7c3aed', color: '#fff', border: 'none', borderRadius: '20px', padding: '7px 16px', cursor: 'pointer', fontWeight: '700', fontSize: '12px' }}>Login / Join</button>
-          )}
-
-          <a href="/submit" style={{ backgroundColor: "#10b981", color: "#fff", padding: "7px 14px", borderRadius: "20px", textDecoration: "none", fontWeight: "700", fontSize: "12px" }}>+ Add Tool</a>
-          <a href="/admin" style={{ backgroundColor: '#0ea5e9', color: '#fff', padding: '7px 16px', borderRadius: '20px', textDecoration: 'none', fontWeight: '700', fontSize: '12px' }}>Admin Panel</a>
-        
+        <div className="flex items-center gap-2.5 shrink-0">
+            <nav className="hidden lg:flex items-center gap-1 mr-1 text-xs font-semibold text-slate-300">
+              <a href="/" className="px-3 py-2 rounded-xl hover:bg-slate-800/80 hover:text-white transition">
+                Explore Tools
+              </a>
+              <a href="/studio" className="px-3 py-2 rounded-xl hover:bg-slate-800/80 text-cyan-300 transition">
+                ✨ 786AI Studio
+              </a>
+              <a href="/blog" className="px-3 py-2 rounded-xl hover:bg-slate-800/80 hover:text-white transition">
+                AI Guides
+              </a>
+            </nav>
+            <button
+              type="button"
+              onClick={() => setMobileSidebarOpen(true)}
+              aria-label="Open Menu"
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900/95 hover:bg-slate-800 border border-slate-700/90 hover:border-cyan-500/50 text-slate-100 text-xs font-bold shadow-md transition shrink-0"
+            >
+              <svg className="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+              <span>Menu</span>
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => setMobileSidebarOpen(true)}
-            aria-label="Open Menu"
-            className="md:hidden inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-white text-xs font-bold shadow-sm shrink-0"
-          >
-            <span className="text-base leading-none">☰</span>
-            <span>Menu</span>
-          </button>
       </header>
       {mobileSidebarOpen && (
-        <div className="fixed inset-0 z-[10050] md:hidden flex justify-end">
+        <div className="fixed inset-0 z-[10050] flex justify-end">
           <div
-            className="fixed inset-0 bg-black/75 backdrop-blur-xs"
+            className="fixed inset-0 bg-black/75 backdrop-blur-xs transition-opacity"
             onClick={() => setMobileSidebarOpen(false)}
           />
-          <aside className="relative z-10 w-72 max-w-[84vw] h-full bg-[#0e1422] border-l border-slate-800 p-5 flex flex-col justify-between overflow-y-auto shadow-2xl text-slate-100">
+          <aside className="relative z-10 w-80 max-w-[88vw] h-full bg-[#0b101b] border-l border-slate-800/90 flex flex-col justify-between overflow-y-auto shadow-2xl text-slate-100">
             <div>
-              <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-800">
-                <div className="flex items-center gap-2 font-extrabold text-base text-white whitespace-nowrap">
-                  <span>🔮</span>
-                  <span>786 AI Hub</span>
+              {/* Drawer Header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800/80 bg-[#0e1422]">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-600/20 border border-cyan-500/30 flex items-center justify-center text-lg">
+                    🔮
+                  </div>
+                  <div>
+                    <div className="font-extrabold text-sm text-white leading-tight whitespace-nowrap">
+                      786 AI Hub
+                    </div>
+                    <div className="text-[11px] text-slate-400">
+                      Navigation &amp; Workspace
+                    </div>
+                  </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setMobileSidebarOpen(false)}
-                  className="w-8 h-8 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-sm"
+                  aria-label="Close Menu"
+                  className="w-8 h-8 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-xs transition"
                 >
                   ✕
                 </button>
               </div>
 
-              <div className="space-y-2 mb-5">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-1">
-                  Quick Access
-                </p>
-                <a
-                  href="/studio"
-                  onClick={() => setMobileSidebarOpen(false)}
-                  className="flex items-center gap-2.5 w-full px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500/20 to-blue-600/20 border border-cyan-500/40 text-cyan-300 text-xs font-bold"
-                >
-                  <span>✨</span>
-                  <span>786AI Studio (Chat &amp; Image)</span>
-                </a>
-                <a
-                  href="/blog"
-                  onClick={() => setMobileSidebarOpen(false)}
-                  className="flex items-center gap-2.5 w-full px-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-slate-800 text-slate-200 text-xs font-semibold"
-                >
-                  <span>📚</span>
-                  <span>AI Guides &amp; Blog</span>
-                </a>
-              </div>
+              <div className="p-4 space-y-5">
+                {/* Main Navigation Section */}
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 px-2 pb-1">
+                    Platform Menu
+                  </p>
+                  <a
+                    href="/"
+                    onClick={() => setMobileSidebarOpen(false)}
+                    className="group flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-slate-900/60 hover:bg-slate-800/90 border border-slate-800/80 hover:border-slate-700 transition"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-base">🏠</span>
+                      <div>
+                        <div className="text-xs font-bold text-slate-100 group-hover:text-white">AI Tools Directory</div>
+                        <div className="text-[10px] text-slate-400">Browse 50+ curated AI apps</div>
+                      </div>
+                    </div>
+                    <span className="text-slate-500 group-hover:text-cyan-400 text-xs">›</span>
+                  </a>
 
-              <div
-                onClickCapture={() => setTimeout(() => setMobileSidebarOpen(false), 150)}
-                className="space-y-2.5 border-t border-slate-800 pt-4 flex flex-col [&_button]:w-full [&_button]:justify-center [&_button]:py-2.5 [&_button]:rounded-xl [&_button]:text-xs [&_button]:font-bold"
-              >
-                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-1">
-                  Account &amp; Controls
-                </p>
-                
-          <button onClick={() => setTheme(isDark ? 'light' : 'dark')} style={{ backgroundColor: cardBg, color: textColor, border: `1px solid ${borderCol}`, borderRadius: '20px', padding: '6px 14px', cursor: 'pointer', fontWeight: '700' }}>
+                  <a
+                    href="/studio"
+                    onClick={() => setMobileSidebarOpen(false)}
+                    className="group flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500/15 to-blue-600/15 hover:from-cyan-500/25 hover:to-blue-600/25 border border-cyan-500/35 transition"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-base">✨</span>
+                      <div>
+                        <div className="text-xs font-bold text-cyan-300 flex items-center gap-2">
+                          <span>786AI Studio</span>
+                          <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-cyan-500/20 text-cyan-200 font-extrabold">FREE</span>
+                        </div>
+                        <div className="text-[10px] text-slate-300">Chat, Canvas &amp; Image Generator</div>
+                      </div>
+                    </div>
+                    <span className="text-cyan-400 text-xs">›</span>
+                  </a>
+
+                  <a
+                    href="/blog"
+                    onClick={() => setMobileSidebarOpen(false)}
+                    className="group flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-slate-900/60 hover:bg-slate-800/90 border border-slate-800/80 hover:border-slate-700 transition"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-base">📚</span>
+                      <div>
+                        <div className="text-xs font-bold text-slate-100 group-hover:text-white">AI Guides &amp; Blog</div>
+                        <div className="text-[10px] text-slate-400">Tutorials &amp; automation workflows</div>
+                      </div>
+                    </div>
+                    <span className="text-slate-500 group-hover:text-cyan-400 text-xs">›</span>
+                  </a>
+                </div>
+
+                {/* Account & Controls Styled as Clean Menu Items */}
+                <div className="space-y-2 border-t border-slate-800/80 pt-4">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 px-2 pb-0.5">
+                    Account &amp; Workspace
+                  </p>
+                  <div
+                    onClickCapture={() => setTimeout(() => setMobileSidebarOpen(false), 150)}
+                    className="flex flex-col gap-2 [&_div]:!flex [&_div]:!items-center [&_div]:!justify-between [&_div]:!gap-2 [&_span]:!whitespace-nowrap [&_span]:!text-xs [&_span]:!font-semibold [&_span]:!text-slate-300 [&_button]:!w-full [&_button]:!flex [&_button]:!items-center [&_button]:!justify-center [&_button]:!gap-2 [&_button]:!px-3.5 [&_button]:!py-2.5 [&_button]:!rounded-xl [&_button]:!bg-slate-900/90 [&_button:hover]:!bg-slate-800 [&_button]:!border [&_button]:!border-slate-800 [&_button:hover]:!border-cyan-500/40 [&_button]:!text-slate-100 [&_button]:!text-xs [&_button]:!font-semibold [&_button]:!shadow-none [&_button]:!transition"
+                  >
+                    <button onClick={() => setTheme(isDark ? 'light' : 'dark')} style={{ backgroundColor: cardBg, color: textColor, border: `1px solid ${borderCol}`, borderRadius: '20px', padding: '6px 14px', cursor: 'pointer', fontWeight: '700' }}>
             {isDark ? '☀️ Light' : '🌙 Dark'}
           </button>
           <button onClick={() => setLang(lang === 'en' ? 'ur' : 'en')} style={{ backgroundColor: cardBg, color: '#38bdf8', border: `1px solid ${borderCol}`, borderRadius: '20px', padding: '6px 14px', cursor: 'pointer', fontWeight: '700' }}>
@@ -255,20 +293,26 @@ export default function Home() {
 
           <a href="/submit" style={{ backgroundColor: "#10b981", color: "#fff", padding: "7px 14px", borderRadius: "20px", textDecoration: "none", fontWeight: "700", fontSize: "12px" }}>+ Add Tool</a>
           <a href="/admin" style={{ backgroundColor: '#0ea5e9', color: '#fff', padding: '7px 16px', borderRadius: '20px', textDecoration: 'none', fontWeight: '700', fontSize: '12px' }}>Admin Panel</a>
-        
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="pt-5 mt-6 border-t border-slate-800/80 flex flex-wrap gap-x-4 gap-y-2 text-[11px] text-slate-400">
-              <a href="/privacy-policy" onClick={() => setMobileSidebarOpen(false)} className="hover:text-cyan-300">
-                Privacy Policy
-              </a>
-              <a href="/terms-of-service" onClick={() => setMobileSidebarOpen(false)} className="hover:text-cyan-300">
-                Terms of Service
-              </a>
-              <a href="/affiliate-disclosure" onClick={() => setMobileSidebarOpen(false)} className="hover:text-cyan-300">
-                Affiliate Disclosure
-              </a>
+            {/* Drawer Footer */}
+            <div className="p-4 border-t border-slate-800/80 bg-[#090d16]">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-400">
+                <a href="/privacy-policy" onClick={() => setMobileSidebarOpen(false)} className="hover:text-cyan-300 transition">
+                  Privacy
+                </a>
+                <span>•</span>
+                <a href="/terms-of-service" onClick={() => setMobileSidebarOpen(false)} className="hover:text-cyan-300 transition">
+                  Terms
+                </a>
+                <span>•</span>
+                <a href="/affiliate-disclosure" onClick={() => setMobileSidebarOpen(false)} className="hover:text-cyan-300 transition">
+                  Disclosure
+                </a>
+              </div>
             </div>
           </aside>
         </div>
