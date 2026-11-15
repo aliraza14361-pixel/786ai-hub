@@ -526,20 +526,40 @@ export default function StudioPage() {
 
     // 1. Create Images Mode (when no photo uploaded for vision)
     if (toolToUse === "image" && !currentImage) {
-      const encoded = encodeURIComponent(textToSend);
-      const url = "https://image.pollinations.ai/prompt/" + encoded + "?width=1024&height=1024&nologo=true&seed=" + Date.now();
-      const aiMsg = {
-        id: "a-" + Date.now(),
-        role: "assistant",
-        modelId: selectedModel,
-        toolId: "image",
-        text: "Created image for: **" + textToSend + "**",
-        imageUrl: url
-      };
-      const finalThread = [...nextMessages, aiMsg];
-      setMessages(finalThread);
-      persistSession(sid, finalThread, selectedModel, textToSend);
-      setLoading(false);
+      try {
+        const imgRes = await fetch("/api/786ai/image", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt: textToSend })
+        });
+        const imgData = await imgRes.json();
+        const aiMsg = imgData.imageUrl
+          ? {
+              id: "a-" + Date.now(),
+              role: "assistant",
+              modelId: selectedModel,
+              toolId: "image",
+              text: "Created image for: **" + textToSend + "**",
+              imageUrl: imgData.imageUrl
+            }
+          : {
+              id: "a-" + Date.now(),
+              role: "assistant",
+              modelId: selectedModel,
+              toolId: "image",
+              text: "⏳ " + (imgData.error || "Please wait 45 seconds before generating the next free image.")
+            };
+        const finalThread = [...nextMessages, aiMsg];
+        setMessages(finalThread);
+        if (imgData.imageUrl) persistSession(sid, finalThread, selectedModel, textToSend);
+      } catch {
+        setMessages((prev) => [
+          ...prev,
+          { id: "err-" + Date.now(), role: "assistant", modelId: selectedModel, toolId: "image", text: "Network error while generating image." }
+        ]);
+      } finally {
+        setLoading(false);
+      }
       return;
     }
 
@@ -1099,11 +1119,10 @@ export default function StudioPage() {
                           />
                           <a
                             href={msg.imageUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-block mt-2 px-4 py-2 rounded-xl bg-cyan-500 text-slate-950 font-bold text-xs"
+                            download={"786ai-image-" + Date.now() + ".jpg"}
+                            className="inline-block mt-2 px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs"
                           >
-                            ⬇ Open Full HD Image
+                            ⬇ Download Image
                           </a>
                         </div>
                       ) : (
