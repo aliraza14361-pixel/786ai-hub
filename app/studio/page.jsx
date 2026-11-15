@@ -1,16 +1,98 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
+const HISTORY_KEY = "786ai_studio_history_v1";
+const MAX_HISTORY = 15;
+
 const MODES = [
-  { id: "chat", label: "AI Chat & Assistant", icon: "🤖", placeholder: "Ask anything in English, Urdu, or Roman Urdu..." },
-  { id: "image", label: "Image Generator", icon: "🎨", placeholder: "Describe the image, logo, poster, or 9:16 artwork you want..." },
-  { id: "coding", label: "Build App & Code", icon: "⚡", placeholder: "Describe a web app, calculator, landing page, or tool to build & preview live..." },
-  { id: "video", label: "Video Studio", icon: "🎬", placeholder: "Enter a topic for a faceless YouTube video, Reels script & AI video prompts..." },
-  { id: "voice", label: "Voiceover (TTS)", icon: "🎙️", placeholder: "Type or paste text to convert into instant AI voiceover..." },
-  { id: "music", label: "Music & Lyrics", icon: "🎶", placeholder: "Describe song mood, topic, language, or background music style..." },
-  { id: "automation", label: "AI Automation", icon: "🔗", placeholder: "Describe a workflow to automate (e.g., auto-post YouTube to X & Telegram)..." },
-  { id: "social", label: "Social Media Content", icon: "📱", placeholder: "Enter your topic for viral TikTok/Reels hooks, captions & hashtags..." }
+  {
+    id: "chat",
+    label: "AI Chat & Assistant",
+    icon: "🤖",
+    placeholder: "Ask anything in English, Urdu, or Roman Urdu...",
+    presets: [
+      "Best free AI tools for YouTube & TikTok",
+      "Explain AI automation in simple Roman Urdu",
+      "5 online earning ideas using free AI tools"
+    ]
+  },
+  {
+    id: "image",
+    label: "Image Generator",
+    icon: "🎨",
+    placeholder: "Describe the image, logo, poster, or 9:16 artwork you want...",
+    presets: [
+      "Futuristic neon cyberpunk city at night, 8k ultra detailed",
+      "3D Pixar style cute robot working on a glowing laptop",
+      "Minimalist luxury gold and black 786AI emblem logo"
+    ]
+  },
+  {
+    id: "coding",
+    label: "Build App & Code",
+    icon: "⚡",
+    placeholder: "Describe a web app, calculator, landing page, or tool to build & preview live...",
+    presets: [
+      "Build a modern scientific calculator app",
+      "Create a Pomodoro focus timer with dark UI",
+      "Build a strong password & QR text generator tool"
+    ]
+  },
+  {
+    id: "video",
+    label: "Video Studio",
+    icon: "🎬",
+    placeholder: "Enter a topic for a faceless YouTube video, Reels script & AI video prompts...",
+    presets: [
+      "60-sec viral faceless YouTube Shorts script on AI future",
+      "Dark luxury motivational TikTok reel + Kling prompts",
+      "3-scene cinematic product ad storyboard for a smartwatch"
+    ]
+  },
+  {
+    id: "voice",
+    label: "Voiceover (TTS)",
+    icon: "🎙️",
+    placeholder: "Type or paste text to convert into instant AI voiceover...",
+    presets: [
+      "Welcome to 786AI Studio! Create amazing videos, apps, and designs for free.",
+      "Assalam-o-Alaikum! Welcome to 786 AI Hub, your all-in-one AI platform."
+    ]
+  },
+  {
+    id: "music",
+    label: "Music & Lyrics",
+    icon: "🎶",
+    placeholder: "Describe song mood, topic, language, or background music style...",
+    presets: [
+      "Upbeat lo-fi chill study beats prompt for Suno AI",
+      "Emotional Urdu & English fusion song lyrics about dreams",
+      "High-energy cinematic trailer background music tags"
+    ]
+  },
+  {
+    id: "automation",
+    label: "AI Automation",
+    icon: "🔗",
+    placeholder: "Describe a workflow to automate (e.g., auto-post YouTube to X & Telegram)...",
+    presets: [
+      "Auto-post new YouTube videos to X & Telegram via Make.com",
+      "Summarize incoming Gmail leads into Google Sheets",
+      "Auto-reply to Instagram comments with a custom DM link"
+    ]
+  },
+  {
+    id: "social",
+    label: "Social Media Content",
+    icon: "📱",
+    placeholder: "Enter your topic for viral TikTok/Reels hooks, captions & hashtags...",
+    presets: [
+      "10 viral hooks for AI & tech TikTok videos",
+      "7-day Instagram Reels content calendar for creators",
+      "High-converting X thread about top free AI tools"
+    ]
+  }
 ];
 
 function renderInline(text) {
@@ -135,6 +217,49 @@ export default function StudioPage() {
   const [loading, setLoading] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   const [copiedAll, setCopiedAll] = useState(false);
+  const [history, setHistory] = useState([]);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(HISTORY_KEY);
+      if (saved) setHistory(JSON.parse(saved));
+    } catch {}
+  }, []);
+
+  const saveToHistory = (entry) => {
+    setHistory((prev) => {
+      const updated = [entry, ...prev].slice(0, MAX_HISTORY);
+      try {
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+  };
+
+  const deleteHistoryItem = (id) => {
+    setHistory((prev) => {
+      const updated = prev.filter((item) => item.id !== id);
+      try {
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+  };
+
+  const clearAllHistory = () => {
+    setHistory([]);
+    try {
+      localStorage.removeItem(HISTORY_KEY);
+    } catch {}
+  };
+
+  const loadHistoryItem = (item) => {
+    setMode(item.mode);
+    setPrompt(item.prompt);
+    setOutput(item.output || "");
+    setImageUrl(item.imageUrl || "");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const activeMode = MODES.find((m) => m.id === mode) || MODES[0];
 
@@ -164,16 +289,31 @@ export default function StudioPage() {
     setTimeout(() => setCopiedAll(false), 2000);
   };
 
-  const handleRun = async (e) => {
-    e.preventDefault();
-    if (!prompt.trim()) return;
+  const executePrompt = async (customPrompt) => {
+    const textToRun = (customPrompt !== undefined ? customPrompt : prompt).trim();
+    if (!textToRun || loading) return;
+    if (customPrompt !== undefined) setPrompt(customPrompt);
+
     setLoading(true);
     setOutput("");
     setImageUrl("");
 
+    const currentModeObj = MODES.find((m) => m.id === mode) || MODES[0];
+
     if (mode === "image") {
-      const encoded = encodeURIComponent(prompt.trim());
-      setImageUrl(`https://image.pollinations.ai/prompt/${encoded}?width=1024&height=1024&nologo=true&seed=${Date.now()}`);
+      const encoded = encodeURIComponent(textToRun);
+      const url = `https://image.pollinations.ai/prompt/${encoded}?width=1024&height=1024&nologo=true&seed=${Date.now()}`;
+      setImageUrl(url);
+      saveToHistory({
+        id: Date.now().toString(),
+        mode,
+        modeLabel: currentModeObj.label,
+        modeIcon: currentModeObj.icon,
+        prompt: textToRun,
+        output: "",
+        imageUrl: url,
+        createdAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+      });
       setLoading(false);
       return;
     }
@@ -181,12 +321,23 @@ export default function StudioPage() {
     if (mode === "voice") {
       if (typeof window !== "undefined" && "speechSynthesis" in window) {
         window.speechSynthesis.cancel();
-        const utter = new SpeechSynthesisUtterance(prompt.trim());
+        const utter = new SpeechSynthesisUtterance(textToRun);
         utter.rate = 1;
         utter.onstart = () => setSpeaking(true);
         utter.onend = () => setSpeaking(false);
         window.speechSynthesis.speak(utter);
-        setOutput("Playing voiceover directly in your browser. You can also switch to **AI Chat & Assistant** to write a script first!");
+        const msg = `Playing voiceover for: "${textToRun}"`;
+        setOutput(msg);
+        saveToHistory({
+          id: Date.now().toString(),
+          mode,
+          modeLabel: currentModeObj.label,
+          modeIcon: currentModeObj.icon,
+          prompt: textToRun,
+          output: msg,
+          imageUrl: "",
+          createdAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+        });
       } else {
         setOutput("Voice synthesis is not supported in this browser.");
       }
@@ -198,15 +349,34 @@ export default function StudioPage() {
       const res = await fetch("/api/786ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, mode })
+        body: JSON.stringify({ prompt: textToRun, mode })
       });
       const data = await res.json();
-      setOutput(data.error ? `Error: ${data.error}` : data.text);
+      if (data.error) {
+        setOutput(`Error: ${data.error}`);
+      } else {
+        setOutput(data.text);
+        saveToHistory({
+          id: Date.now().toString(),
+          mode,
+          modeLabel: currentModeObj.label,
+          modeIcon: currentModeObj.icon,
+          prompt: textToRun,
+          output: data.text,
+          imageUrl: "",
+          createdAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+        });
+      }
     } catch (err) {
       setOutput("Network error. Please try again.");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRun = (e) => {
+    e.preventDefault();
+    executePrompt();
   };
 
   return (
@@ -243,6 +413,27 @@ export default function StudioPage() {
         </div>
 
         <form onSubmit={handleRun} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 mb-6">
+          {activeMode.presets && (
+            <div className="mb-3">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                ⚡ 1-Click Prompts (Tap to Run)
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {activeMode.presets.map((preset, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    disabled={loading}
+                    onClick={() => executePrompt(preset)}
+                    className="px-3 py-1.5 rounded-lg bg-slate-950 hover:bg-cyan-500/15 border border-slate-800 hover:border-cyan-500/50 text-xs text-slate-300 hover:text-cyan-200 text-left transition disabled:opacity-50"
+                  >
+                    {preset}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <textarea
             rows={4}
             value={prompt}
@@ -294,7 +485,7 @@ export default function StudioPage() {
         )}
 
         {output && (
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 mb-6">
             <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-800">
               <span className="text-xs font-bold text-cyan-300">786AI OUTPUT</span>
               <button
@@ -305,6 +496,60 @@ export default function StudioPage() {
               </button>
             </div>
             <FormattedOutput content={output} />
+          </div>
+        )}
+
+        {history.length > 0 && (
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 mt-8">
+            <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-800">
+              <span className="text-xs font-bold uppercase tracking-wider text-cyan-300">
+                🕒 Saved History ({history.length}/{MAX_HISTORY})
+              </span>
+              <button
+                onClick={clearAllHistory}
+                className="text-xs text-rose-400 hover:text-rose-300"
+              >
+                Clear All
+              </button>
+            </div>
+            <div className="space-y-2">
+              {history.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between gap-3 p-3 rounded-xl bg-slate-950 border border-slate-800 hover:border-slate-700"
+                >
+                  <button
+                    type="button"
+                    onClick={() => loadHistoryItem(item)}
+                    className="flex-1 text-left min-w-0"
+                  >
+                    <div className="flex items-center gap-2 text-xs text-slate-400 mb-0.5">
+                      <span>{item.modeIcon}</span>
+                      <span className="font-semibold text-cyan-300">{item.modeLabel}</span>
+                      <span>• {item.createdAt}</span>
+                    </div>
+                    <div className="text-sm text-slate-200 truncate">{item.prompt}</div>
+                  </button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => loadHistoryItem(item)}
+                      className="px-2.5 py-1 rounded-lg bg-cyan-500/15 text-cyan-300 text-xs font-semibold hover:bg-cyan-500/25"
+                    >
+                      Open
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => deleteHistoryItem(item.id)}
+                      className="px-2 py-1 rounded-lg bg-slate-800 text-slate-400 hover:text-rose-400 text-xs"
+                      title="Delete"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
