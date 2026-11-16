@@ -13,25 +13,25 @@ const PLATFORMS = [
   {
     id: "youtube",
     name: "YouTube Channel",
-    handle: "Subscribe on YouTube",
+    handle: "@alirazaali2358",
     reward: 5,
-    url: "https://www.youtube.com",
+    url: "https://youtube.com/@alirazaali2358",
     icon: "▶️"
   },
   {
     id: "instagram",
     name: "Instagram",
-    handle: "Follow on Instagram",
+    handle: "@alirazaali746",
     reward: 5,
-    url: "https://www.instagram.com",
+    url: "https://instagram.com/alirazaali746",
     icon: "📸"
   },
   {
     id: "tiktok",
     name: "TikTok",
-    handle: "Follow on TikTok",
+    handle: "@user1379169809",
     reward: 5,
-    url: "https://www.tiktok.com",
+    url: "https://www.tiktok.com/@user1379169809",
     icon: "🎵"
   }
 ];
