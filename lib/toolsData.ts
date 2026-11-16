@@ -275,7 +275,7 @@ export const TOOLS_DATA: ToolItem[] = [
     description: 'Human-quality AI voice synthesis, text-to-speech, and voice cloning.',
     pricing: 'Freemium',
     category: 'Audio',
-    url: 'https://elevenlabs.io/',
+    url: 'https://try.elevenlabs.io/0cxvk7hfr2qk',
     features: ['Instant voice cloning', 'Emotional inflection tuning', 'Multi-language dubbing', 'Voice Library marketplace'],
     pros: ['Undetectable natural voice realism', 'Supports 29+ languages', 'Low latency API'],
     cons: ['Free character quota is low', 'Voice cloning requires verification']
@@ -422,7 +422,7 @@ export const TOOLS_DATA: ToolItem[] = [
     description: 'Visual automation platform connecting AI models to business apps.',
     pricing: 'Freemium',
     category: 'Automation',
-    url: 'https://www.make.com/',
+    url: 'https://www.make.com/en/register?pc=aliraza',
     features: ['Visual drag-and-drop scenario builder', 'OpenAI & Claude API modules', 'Webhooks & JSON parsing', 'Error handling routes'],
     pros: ['Highly visual scenario workflow', 'Affordable plan limits', 'Powerful data transformation options'],
     cons: ['Learning curve for data mapping', 'Execution operations cap on free plan']

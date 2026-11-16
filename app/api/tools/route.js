@@ -31,7 +31,7 @@ const FULL_MASTER_DATA = [
   { id: '23', name: 'HeyGen', description: 'AI avatar video generator for automated video localization.', category: 'Video Generator', rating: '4.8', pricing: 'Freemium', icon: '🗣️', url: 'https://heygen.com' },
 
   // Voice & Music (10 Tools)
-  { id: '24', name: 'ElevenLabs', description: 'Human-quality AI voice synthesis, text-to-speech, and voice cloning.', category: 'Voice & Music', rating: '4.9', pricing: 'Freemium', icon: '🎙️', url: 'https://elevenlabs.io' },
+  { id: '24', name: 'ElevenLabs', description: 'Human-quality AI voice synthesis, text-to-speech, and voice cloning.', category: 'Voice & Music', rating: '4.9', pricing: 'Freemium', icon: '🎙️', url: 'https://try.elevenlabs.io/0cxvk7hfr2qk' },
   { id: '25', name: 'Suno AI', description: 'Generate complete songs with realistic vocals and instrumentals.', category: 'Voice & Music', rating: '4.8', pricing: 'Freemium', icon: '🎵', url: 'https://suno.com' },
   { id: '26', name: 'Voice.ai', description: 'Real-time AI voice changer for streaming and gaming.', category: 'Voice & Music', rating: '4.6', pricing: 'Free', icon: '🎤', url: 'https://voice.ai' },
 
@@ -43,7 +43,7 @@ const FULL_MASTER_DATA = [
   // Automation & Business (10 Tools)
   { id: '30', name: 'Thunderbit', description: 'No-code browser AI automation and web data scraping platform.', category: 'AI Automation', rating: '4.7', pricing: 'Freemium', icon: '🌐', url: 'https://thunderbit.com' },
   { id: '31', name: 'n8n.io', description: 'Fair-code workflow automation tool with native AI integrations.', category: 'AI Automation', rating: '4.8', pricing: 'Free', icon: '⚙️', url: 'https://n8n.io' },
-  { id: '32', name: 'Make.com', description: 'Visual automation platform connecting AI models to business apps.', category: 'AI Automation', rating: '4.9', pricing: 'Freemium', icon: '🔄', url: 'https://make.com' },
+  { id: '32', name: 'Make.com', description: 'Visual automation platform connecting AI models to business apps.', category: 'AI Automation', rating: '4.9', pricing: 'Freemium', icon: '🔄', url: 'https://www.make.com/en/register?pc=aliraza' },
   {"id":"33","name":"NotebookLM","description":"100% free AI research assistant and study guide generator by Google for summarizing PDFs, notes, and YouTube videos with audio overviews.","category":"Text & Writing","rating":"4.9","pricing":"Free","icon":"📓","url":"https://notebooklm.google.com"},
   {"id":"34","name":"DeepSeek AI","description":"Free open-weight AI chatbot and reasoning assistant for coding, math problem solving, and long-form writing with zero daily paywall.","category":"Text & Writing","rating":"4.8","pricing":"Free","icon":"🐋","url":"https://chat.deepseek.com"},
   {"id":"35","name":"Gamma AI","description":"Free AI presentation maker and slide deck generator that turns text prompts and notes into clean visual slides in seconds.","category":"Text & Writing","rating":"4.8","pricing":"Freemium","icon":"📊","url":"https://gamma.app"},
