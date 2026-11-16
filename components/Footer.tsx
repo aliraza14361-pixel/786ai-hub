@@ -1,3 +1,4 @@
+"use client";
 import Link from 'next/link';
 
 export default function Footer() {
@@ -12,6 +13,8 @@ export default function Footer() {
         <div className="flex flex-wrap items-center justify-center gap-5 text-xs font-medium">
           <a href="/about" className="hover:text-cyan-400 transition">About</a>
           <a href="/contact" className="text-cyan-400 hover:text-cyan-300 font-semibold transition">Join our community</a>
+          <span className="text-slate-700 mx-2">•</span>
+          <button type="button" onClick={() => window.dispatchEvent(new Event("open-domain-support"))} className="text-amber-400 hover:text-amber-300 font-semibold transition cursor-pointer">🌐 Support for Domain</button>
           <a href="/privacy" className="hover:text-cyan-400 transition">Privacy Policy</a>
           <a href="/terms" className="hover:text-cyan-400 transition">Terms of Service</a>
           <a href="/disclosure" className="hover:text-cyan-400 transition">Affiliate Disclosure</a>

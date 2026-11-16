@@ -1,6 +1,7 @@
 import './globals.css';
 import Footer from "../components/Footer";
 import SocialRewardModal from "../src/components/SocialRewardModal";
+import DomainSupportModal from "../src/components/DomainSupportModal";
 
 export const viewport = {
   themeColor: '#090d16',
@@ -49,6 +50,7 @@ export default function RootLayout({ children }) {
         <div className="flex-grow">{children}</div>
         <Footer />
         <SocialRewardModal />
+        <DomainSupportModal />
       
         <a href="/studio" style={{position:"fixed",bottom:"20px",right:"20px",zIndex:9999,background:"linear-gradient(135deg,#06b6d4,#3b82f6)",color:"#020617",fontWeight:"800",padding:"12px 20px",borderRadius:"9999px",boxShadow:"0 10px 25px rgba(6,182,212,0.45)",textDecoration:"none",fontSize:"14px"}}>✨ 786AI</a>
       <a href="/blog" style={{position:"fixed",bottom:"20px",left:"20px",zIndex:9999,background:"#0f172a",color:"#67e8f9",border:"1px solid rgba(6,182,212,0.4)",fontWeight:"700",padding:"10px 16px",borderRadius:"9999px",boxShadow:"0 8px 20px rgba(0,0,0,0.4)",textDecoration:"none",fontSize:"13px"}}>📚 AI Guides</a>
