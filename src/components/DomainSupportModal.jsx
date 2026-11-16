@@ -3,44 +3,14 @@ import { useState, useEffect } from "react";
 
 const GUMROAD_SUPPORT_URL = "https://razaexpress6.gumroad.com/l/bvugf";
 
-const BANK_DETAILS = [
-  {
-    id: "intl-bank",
-    label: "Direct Bank Transfer (Wise / Remitly / RAAST)",
-    bankName: "Allied Bank Limited (Pakistan)",
-    accountTitle: "ALI RAZA",
-    number: "PK09ABPA0010036228870013",
-    swift: "ABPAPKKA",
-    icon: "🏦",
-  },
-];
-
 export default function DomainSupportModal() {
   const [open, setOpen] = useState(false);
-  const [copiedId, setCopiedId] = useState(null);
 
   useEffect(() => {
     const openHandler = () => setOpen(true);
     window.addEventListener("open-domain-support", openHandler);
     return () => window.removeEventListener("open-domain-support", openHandler);
   }, []);
-
-  const handleCopy = async (id, text) => {
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(text);
-      } else {
-        const el = document.createElement("textarea");
-        el.value = text;
-        document.body.appendChild(el);
-        el.select();
-        document.execCommand("copy");
-        document.body.removeChild(el);
-      }
-      setCopiedId(id);
-      setTimeout(() => setCopiedId(null), 2000);
-    } catch (e) {}
-  };
 
   if (!open) return null;
 
@@ -73,7 +43,7 @@ export default function DomainSupportModal() {
           </button>
         </div>
 
-        <div className="p-4 space-y-3 max-h-[65vh] overflow-y-auto">
+        <div className="p-4">
           <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500/15 via-cyan-500/10 to-blue-500/15 border border-emerald-500/30 space-y-3">
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-base shrink-0">
@@ -97,63 +67,6 @@ export default function DomainSupportModal() {
               <span>💖 Support with Card (Any Amount) →</span>
             </a>
           </div>
-
-          {BANK_DETAILS.map((item) => (
-            <div
-              key={item.id}
-              className="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-2.5"
-            >
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-slate-800 flex items-center justify-center text-base shrink-0">
-                  {item.icon}
-                </div>
-                <div className="min-w-0">
-                  <div className="text-xs font-bold text-white truncate">
-                    {item.label}
-                  </div>
-                  <div className="text-[11px] text-slate-400 truncate">
-                    {item.bankName} • {item.accountTitle}
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-[#090d16] border border-slate-800/80">
-                  <div className="min-w-0">
-                    <div className="text-[10px] uppercase text-slate-400">IBAN</div>
-                    <div className="font-mono text-xs text-cyan-300 select-all break-all">
-                      {item.number}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleCopy(`${item.id}-iban`, item.number)}
-                    className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-bold shrink-0"
-                  >
-                    {copiedId === `${item.id}-iban` ? "✓ Copied" : "Copy"}
-                  </button>
-                </div>
-
-                {item.swift && (
-                  <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-[#090d16] border border-slate-800/80">
-                    <div>
-                      <div className="text-[10px] uppercase text-slate-400">SWIFT / BIC</div>
-                      <div className="font-mono text-xs text-amber-300 select-all">
-                        {item.swift}
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleCopy(`${item.id}-swift`, item.swift)}
-                      className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-bold shrink-0"
-                    >
-                      {copiedId === `${item.id}-swift` ? "✓ Copied" : "Copy"}
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
         </div>
 
         <div className="px-5 py-3.5 bg-[#090d16] border-t border-slate-800/80 flex items-center justify-between gap-3">
