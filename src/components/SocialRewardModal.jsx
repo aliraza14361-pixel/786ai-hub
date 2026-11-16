@@ -33,6 +33,14 @@ const PLATFORMS = [
     reward: 5,
     url: "https://www.tiktok.com/@user1379169809",
     icon: "🎵"
+  },
+  {
+    id: "x",
+    name: "X (Twitter)",
+    handle: "@AliRaza10048422",
+    reward: 5,
+    url: "https://x.com/AliRaza10048422",
+    icon: "𝕏"
   }
 ];
 
