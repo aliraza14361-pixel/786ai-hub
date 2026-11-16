@@ -6,6 +6,7 @@ export const viewport = {
 };
 
 export const metadata = {
+  verification: { google: "m3C51XuWVnVi0J7VHoLbmvPmUWgCUZ4QeUuuk8N4bkU" },
   metadataBase: new URL('https://786ai-hub.vercel.app'),
   title: {
     default: '786 AI Hub | Global AI Tools Directory, Native Processors & Automation Studio',
