@@ -478,7 +478,7 @@ export default function Home() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                       <span style={{ fontSize: '30px', backgroundColor: isDark ? '#1e293b' : '#f1f5f9', padding: '10px', borderRadius: '14px' }}>{t.icon}</span>
                       <div>
-                        <h4 style={{ margin: 0, fontSize: '18px', fontWeight: '800' }}>{t.name}</h4>
+                        <h4 style={{ margin: 0, fontSize: '18px', fontWeight: '800' }}><a href={"/tool/" + (t.slug || t.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""))} style={{ color: "inherit", textDecoration: "none" }}>{t.name}</a></h4>
                         <span style={{ fontSize: '12px', color: '#fbbf24', fontWeight: '700' }}>★ {t.rating}</span>
                       </div>
                     </div>
@@ -493,9 +493,25 @@ export default function Home() {
                   <span style={{ fontSize: '11px', backgroundColor: t.pricing === 'Free' ? '#10b98120' : t.pricing === 'Paid' ? '#ef444420' : '#0284c720', color: t.pricing === 'Free' ? '#10b981' : t.pricing === 'Paid' ? '#ef4444' : '#38bdf8', padding: '4px 12px', borderRadius: '12px', fontWeight: '800' }}>
                     {t.pricing === 'Free' ? '100% Free' : t.pricing}
                   </span>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <a
+                  href={"/tool/" + (t.slug || t.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""))}
+                  style={{
+                    color: "#a78bfa",
+                    border: "1px solid rgba(167, 139, 250, 0.35)",
+                    textDecoration: "none",
+                    borderRadius: "10px",
+                    padding: "7px 12px",
+                    fontSize: "12px",
+                    fontWeight: "600",
+                  }}
+                >
+                  Details
+                </a>
                 <a href={"/go/" + (t.slug || t.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")) + "?u=" + encodeURIComponent(t.url)} target="_blank" rel="noreferrer" style={{ backgroundColor: "#7c3aed", color: "#fff", textDecoration: "none", borderRadius: "10px", padding: "8px 18px", fontSize: "12px", fontWeight: "700" }}>
                     Launch Tool ↗
                   </a>
+              </div>
                 </div>
               </div>
             ))}
