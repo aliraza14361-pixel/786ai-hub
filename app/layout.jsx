@@ -25,7 +25,7 @@ export const metadata = {
   ],
   manifest: '/manifest.json',
   openGraph: {
-    title: '786 AI Hub | Global AI Tools Directory',
+    title: "786 AI Hub (786Ai • 786AI • 786 ai hub) – 52+ Free AI Tools & AI Studio",
     description:
       'Explore 100+ curated AI tools, native AI text generators, and automation workflows.',
     url: 'https://786ai-hub.vercel.app',
