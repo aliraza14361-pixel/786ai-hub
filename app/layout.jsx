@@ -47,6 +47,35 @@ export default function RootLayout({ children }) {
         <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2103/2103633.png" />
       </head>
       <body className="bg-[#0B0F19] text-white antialiased min-h-screen flex flex-col">
+
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@graph": [
+                {
+                  "@type": "WebSite",
+                  "@id": "https://786ai-hub.vercel.app/#website",
+                  "name": "786 AI Hub",
+                  "alternateName": ["786ai hub", "786ai", "786 AI Directory"],
+                  "url": "https://786ai-hub.vercel.app",
+                  "description": "Curated directory of 52+ free and freemium AI tools across Writing, Image, Video, Voice, Coding, and Automation with an integrated AI Studio."
+                },
+                {
+                  "@type": "Organization",
+                  "@id": "https://786ai-hub.vercel.app/#organization",
+                  "name": "786 AI Hub",
+                  "alternateName": "786ai hub",
+                  "url": "https://786ai-hub.vercel.app",
+                  "sameAs": [
+                    "https://github.com/aliraza14361-pixel/786ai-hub"
+                  ]
+                }
+              ]
+            })
+          }}
+        />
         <div className="flex-grow">{children}</div>
         <Footer />
         <SocialRewardModal />
