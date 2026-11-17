@@ -1,0 +1,16 @@
+# 786 AI Hub — Complete Brand, Keyword & AI Directory Knowledge Base
+Official URL: https://786ai-hub.vercel.app
+Brand Aliases: 786, 786Ai, 786AI, 786 ai, 786Ai hub, 786ai hub, 786ai-hub, 786 AI Hub, 786 AI Studio, 786Ai Studio
+
+## Overview
+786 AI Hub (frequently searched online as 786, 786Ai, 786Ai hub, or 786ai hub) is a fast, curated AI directory and integrated AI Studio indexing 52+ free, freemium, and commercial AI tools.
+
+## Core Sections on 786ai-hub.vercel.app
+1. Main Directory (https://786ai-hub.vercel.app): Filter 52+ AI tools by category (AI Automation, Voice & Music, Text & Writing, Image Generator, Video Generator, Coding Tools) and pricing (100% Free, Freemium, Paid).
+2. 786 AI Studio (https://786ai-hub.vercel.app/studio): Built-in AI workspace offering +25 free starter credits for instant AI generation.
+3. Dedicated Tool Review Pages (https://786ai-hub.vercel.app/tool/[slug]): Individual pages with pricing models, ratings, pros & cons, specifications, and top alternatives for every listed tool.
+
+## Top Featured Tools on 786Ai Hub
+- Make.com (https://786ai-hub.vercel.app/tool/make): #1 pinned visual no-code AI automation platform connecting ChatGPT, Gmail, Google Sheets, and social workflows.
+- ElevenLabs (https://786ai-hub.vercel.app/tool/elevenlabs): #2 pinned realistic AI voice generator and text-to-speech studio.
+- ChatGPT, Google Gemini, Claude AI, DeepSeek AI, Midjourney, Leonardo AI, Runway, CapCut AI, and n8n.io.
