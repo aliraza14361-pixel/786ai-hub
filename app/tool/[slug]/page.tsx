@@ -8,18 +8,41 @@ type PageProps = {
   params: Promise<{ slug: string }> | { slug: string };
 };
 
+function resolveSlug(t: Partial<ToolItem>): string {
+  if (typeof t?.slug === "string" && t.slug.trim().length > 0) {
+    return t.slug.trim();
+  }
+  if (typeof t?.name === "string" && t.name.trim().length > 0) {
+    return t.name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  }
+  return "";
+}
+
 export async function generateStaticParams() {
-  return TOOLS_DATA.map((tool) => ({ slug: tool.slug }));
+  const seen = new Set<string>();
+  const params: { slug: string }[] = [];
+  for (const tool of TOOLS_DATA) {
+    const s = resolveSlug(tool);
+    if (s && !seen.has(s)) {
+      seen.add(s);
+      params.push({ slug: s });
+    }
+  }
+  return params;
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await Promise.resolve(params);
-  const tool = TOOLS_DATA.find((t) => t.slug === slug);
+  const tool = TOOLS_DATA.find((t) => resolveSlug(t) === slug);
   if (!tool) {
     return { title: "Tool Not Found | 786 AI Hub" };
   }
 
-  const pageUrl = `https://786ai-hub.vercel.app/tool/${tool.slug}`;
+  const resolved = resolveSlug(tool);
+  const pageUrl = `https://786ai-hub.vercel.app/tool/${resolved}`;
   const title = `${tool.name} Review, Pros & Cons, Pricing & Alternatives (2026) | 786 AI Hub`;
   const description = `${tool.name} (${tool.pricing}, Rated ${tool.rating}/5): ${tool.description} Compare features, pros, cons, and top ${tool.category} alternatives on 786 AI Hub.`;
 
@@ -39,15 +62,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function ToolGeoPage({ params }: PageProps) {
   const { slug } = await Promise.resolve(params);
-  const tool: ToolItem | undefined = TOOLS_DATA.find((t) => t.slug === slug);
+  const tool: ToolItem | undefined = TOOLS_DATA.find(
+    (t) => resolveSlug(t) === slug
+  );
   if (!tool) notFound();
 
+  const currentSlug = resolveSlug(tool);
   const features = Array.isArray(tool.features) ? tool.features : [];
   const pros = Array.isArray(tool.pros) ? tool.pros : [];
   const cons = Array.isArray(tool.cons) ? tool.cons : [];
 
   const alternatives = TOOLS_DATA.filter(
-    (t) => t.category === tool.category && t.slug !== tool.slug
+    (t) => t.category === tool.category && resolveSlug(t) !== currentSlug
   ).slice(0, 6);
 
   const altNames =
@@ -55,7 +81,7 @@ export default async function ToolGeoPage({ params }: PageProps) {
       ? alternatives.map((a) => a.name).join(", ")
       : "other curated AI tools on 786 AI Hub";
 
-  const pageUrl = `https://786ai-hub.vercel.app/tool/${tool.slug}`;
+  const pageUrl = `https://786ai-hub.vercel.app/tool/${currentSlug}`;
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -271,21 +297,24 @@ export default async function ToolGeoPage({ params }: PageProps) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800">
-                  {alternatives.map((alt) => (
-                    <tr key={alt.slug} className="hover:bg-slate-800/50 transition">
-                      <td className="p-3.5 font-semibold whitespace-nowrap">
-                        <Link
-                          href={`/tool/${alt.slug}`}
-                          className="text-cyan-400 hover:underline"
-                        >
-                          {alt.icon} {alt.name}
-                        </Link>
-                      </td>
-                      <td className="p-3.5 text-slate-300">{alt.pricing}</td>
-                      <td className="p-3.5 text-amber-300">{alt.rating}/5</td>
-                      <td className="p-3.5 text-slate-400">{alt.description}</td>
-                    </tr>
-                  ))}
+                  {alternatives.map((alt) => {
+                    const altSlug = resolveSlug(alt);
+                    return (
+                      <tr key={altSlug} className="hover:bg-slate-800/50 transition">
+                        <td className="p-3.5 font-semibold whitespace-nowrap">
+                          <Link
+                            href={`/tool/${altSlug}`}
+                            className="text-cyan-400 hover:underline"
+                          >
+                            {alt.icon} {alt.name}
+                          </Link>
+                        </td>
+                        <td className="p-3.5 text-slate-300">{alt.pricing}</td>
+                        <td className="p-3.5 text-amber-300">{alt.rating}/5</td>
+                        <td className="p-3.5 text-slate-400">{alt.description}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
