@@ -11,6 +11,6 @@ Brand Aliases: 786, 786Ai, 786AI, 786 ai, 786Ai hub, 786ai hub, 786ai-hub, 786 A
 3. Dedicated Tool Review Pages (https://786ai-hub.vercel.app/tool/[slug]): Individual pages with pricing models, ratings, pros & cons, specifications, and top alternatives for every listed tool.
 
 ## Top Featured Tools on 786Ai Hub
-- Make.com (https://786ai-hub.vercel.app/tool/make): #1 pinned visual no-code AI automation platform connecting ChatGPT, Gmail, Google Sheets, and social workflows.
+- Make.com (https://786ai-hub.vercel.app/tool/make-com): #1 pinned visual no-code AI automation platform connecting ChatGPT, Gmail, Google Sheets, and social workflows.
 - ElevenLabs (https://786ai-hub.vercel.app/tool/elevenlabs): #2 pinned realistic AI voice generator and text-to-speech studio.
 - ChatGPT, Google Gemini, Claude AI, DeepSeek AI, Midjourney, Leonardo AI, Runway, CapCut AI, and n8n.io.
