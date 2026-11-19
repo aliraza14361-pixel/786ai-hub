@@ -79,13 +79,10 @@ export default function RootLayout({ children }) {
         />
         <div className="flex-grow">{children}</div>
         <Footer />
-        <SocialRewardModal />
-        <DomainSupportModal />
+<DomainSupportModal />
       
         <a href="/studio" style={{position:"fixed",bottom:"20px",right:"20px",zIndex:9999,background:"linear-gradient(135deg,#06b6d4,#3b82f6)",color:"#020617",fontWeight:"800",padding:"12px 20px",borderRadius:"9999px",boxShadow:"0 10px 25px rgba(6,182,212,0.45)",textDecoration:"none",fontSize:"14px"}}>✨ 786AI</a>
-      <a href="/blog" style={{position:"fixed",bottom:"20px",left:"20px",zIndex:9999,background:"#0f172a",color:"#67e8f9",border:"1px solid rgba(6,182,212,0.4)",fontWeight:"700",padding:"10px 16px",borderRadius:"9999px",boxShadow:"0 8px 20px rgba(0,0,0,0.4)",textDecoration:"none",fontSize:"13px"}}>📚 AI Guides</a>
-        
-      <footer id="geo-786ai-footer" style={{ borderTop: "1px solid #1e293b", backgroundColor: "#090d16", color: "#94a3b8", padding: "32px 24px", marginTop: "48px", fontSize: "13px", lineHeight: "1.7" }}>
+<footer id="geo-786ai-footer" style={{ borderTop: "1px solid #1e293b", backgroundColor: "#090d16", color: "#94a3b8", padding: "32px 24px", marginTop: "48px", fontSize: "13px", lineHeight: "1.7" }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
           <p style={{ color: "#f8fafc", fontWeight: "700", fontSize: "15px", marginBottom: "8px" }}>
             786 AI Hub (786Ai • 786Ai hub • 786ai hub) — Global AI Tools Directory &amp; 786 AI Studio

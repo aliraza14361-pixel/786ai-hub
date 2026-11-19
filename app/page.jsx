@@ -264,6 +264,23 @@ export default function Home() {
                     </div>
                     <span className="text-slate-500 group-hover:text-cyan-400 text-xs">›</span>
                   </a>
+              <a
+                href="/studio"
+                onClick={() => setMobileSidebarOpen(false)}
+                className="group flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500/15 to-orange-500/15 hover:from-amber-500/25 hover:to-orange-500/25 border border-amber-500/35 transition"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-base">🎁</span>
+                  <div>
+                    <div className="text-xs font-bold text-amber-300 flex items-center gap-2">
+                      <span>25 Bonus Credits</span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-200 font-extrabold">FREE</span>
+                    </div>
+                    <div className="text-[10px] text-slate-300">Claim starter credits for 786AI Studio</div>
+                  </div>
+                </div>
+                <span className="text-amber-400 text-xs">&gt;</span>
+              </a>
                 </div>
 
                 {/* Account & Controls Styled as Clean Menu Items */}
