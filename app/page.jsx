@@ -161,6 +161,9 @@ export default function Home() {
               <a href="/studio" className="px-3 py-2 rounded-xl hover:bg-slate-800/80 text-cyan-300 transition">
                 ✨ 786AI Studio
               </a>
+            <a href="/mini-tools/hot" className="px-3 py-2 rounded-xl hover:bg-slate-800/80 text-emerald-300 transition">
+              🔥 Mini-Tools
+            </a>
               <a href="/blog" className="px-3 py-2 rounded-xl hover:bg-slate-800/80 hover:text-white transition">
                 AI Guides
               </a>
@@ -249,6 +252,24 @@ export default function Home() {
                     </div>
                     <span className="text-cyan-400 text-xs">›</span>
                   </a>
+            <a
+              href="/mini-tools/hot"
+              onClick={() => setMobileSidebarOpen(false)}
+              className="group flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500/15 to-teal-600/15 hover:from-emerald-500/25 hover:to-teal-600/25 border border-emerald-500/35 transition"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-base">🔥</span>
+                <div>
+                  <div className="text-xs font-bold text-emerald-300 flex items-center gap-2">
+                    <span>Hot AI Mini-Tools</span>
+                    <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-200 font-extrabold">NEW</span>
+                  </div>
+                  <div className="text-[10px] text-slate-400">Prompt Enhancer, Reels Hooks &amp; SEO</div>
+                </div>
+              </div>
+              <span className="text-emerald-400 text-xs">&gt;</span>
+            </a>
+
 
                   <a
                     href="/blog"
