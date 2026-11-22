@@ -2,33 +2,98 @@ import { NextResponse } from "next/server";
 
 export const maxDuration = 60;
 
-async function fetchImageAsDataUrl(url: string): Promise<string | null> {
+async function fetchWithTimeout(url: string, init: RequestInit = {}, timeoutMs = 15000): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) return null;
-    const arrayBuffer = await res.arrayBuffer();
-    const base64 = Buffer.from(arrayBuffer).toString("base64");
-    const contentType = res.headers.get("content-type") || "image/jpeg";
-    if (!base64 || base64.length < 500) return null;
-    return `data:${contentType};base64,${base64}`;
-  } catch {
-    return null;
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
   }
 }
 
-async function generateGeminiKeyframe(
+async function generateOpenAIKeyframe(
+  openAiKey: string,
+  scenePrompt: string,
+  aspectRatio: string
+): Promise<string | null> {
+  const isPortrait = aspectRatio === "9:16" || aspectRatio === "3:4";
+  const isSquare = aspectRatio === "1:1";
+  const size = isPortrait ? "1024x1536" : isSquare ? "1024x1024" : "1536x1024";
+  const dalleSize = isPortrait ? "1024x1792" : isSquare ? "1024x1024" : "1792x1024";
+
+  // 1. Try gpt-image-1 first
+  try {
+    const res = await fetchWithTimeout(
+      "https://api.openai.com/v1/images/generations",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${openAiKey}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-image-1",
+          prompt: `Photorealistic cinematic movie frame, ultra detailed 4K, no text watermarks: ${scenePrompt}`,
+          n: 1,
+          size,
+          quality: "medium",
+        }),
+      },
+      20000
+    );
+
+    if (res.ok) {
+      const data = await res.json();
+      const b64 = data?.data?.[0]?.b64_json;
+      if (b64) return `data:image/png;base64,${b64}`;
+    }
+  } catch {
+    // Fall back to dall-e-3
+  }
+
+  // 2. Try dall-e-3 with b64_json
+  try {
+    const res = await fetchWithTimeout(
+      "https://api.openai.com/v1/images/generations",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${openAiKey}`,
+        },
+        body: JSON.stringify({
+          model: "dall-e-3",
+          prompt: `Photorealistic cinematic movie frame, ultra detailed 4K, no text watermarks: ${scenePrompt}`,
+          n: 1,
+          size: dalleSize,
+          response_format: "b64_json",
+        }),
+      },
+      20000
+    );
+
+    if (res.ok) {
+      const data = await res.json();
+      const b64 = data?.data?.[0]?.b64_json;
+      if (b64) return `data:image/png;base64,${b64}`;
+    }
+  } catch {
+    // Fall back to Gemini
+  }
+
+  return null;
+}
+
+async function generateGeminiRasterFrame(
   apiKey: string,
   scenePrompt: string,
   imageBase64?: string,
   imageMimeType?: string
 ): Promise<string | null> {
-  const imageModels = [
-    "gemini-2.5-flash-image",
-    "gemini-2.0-flash-preview-image-generation",
-    "gemini-2.0-flash-exp",
-  ];
+  const models = ["gemini-2.5-flash-image", "gemini-2.0-flash-preview-image-generation"];
 
-  for (const modelName of imageModels) {
+  for (const modelName of models) {
     try {
       const parts: Array<Record<string, unknown>> = [];
       if (imageBase64) {
@@ -40,21 +105,20 @@ async function generateGeminiKeyframe(
         });
       }
       parts.push({
-        text: `Generate a high-detail, photorealistic cinematic movie frame (no text watermarks): ${scenePrompt}`,
+        text: `Create a vivid, photorealistic cinematic movie still (no text or watermarks): ${scenePrompt}`,
       });
 
-      const res = await fetch(
+      const res = await fetchWithTimeout(
         `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             contents: [{ parts }],
-            generationConfig: {
-              responseModalities: ["IMAGE", "TEXT"],
-            },
+            generationConfig: { responseModalities: ["IMAGE", "TEXT"] },
           }),
-        }
+        },
+        14000
       );
 
       if (!res.ok) continue;
@@ -73,6 +137,62 @@ async function generateGeminiKeyframe(
   return null;
 }
 
+async function generateGeminiSvgScenes(
+  apiKey: string,
+  prompt: string,
+  aspectRatio: string
+): Promise<string[]> {
+  const isPortrait = aspectRatio === "9:16" || aspectRatio === "3:4";
+  const vb = isPortrait ? "0 0 720 1280" : "0 0 1280 720";
+
+  for (const textModel of ["gemini-2.5-flash", "gemini-2.5-flash-lite"]) {
+    try {
+      const instruction = `You are a cinematic storyboard illustrator. Create 3 distinct, richly detailed SVG scene illustrations depicting a 3-shot sequence for: "${prompt}".
+Shot 1: Opening wide establishing shot.
+Shot 2: Dynamic mid-action shot with closer perspective and movement.
+Shot 3: Dramatic closing shot with glowing lighting.
+Rules:
+- Output ONLY 3 complete <svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb}">...</svg> blocks, nothing else.
+- Use rich <defs> linearGradient and radialGradient backgrounds, multi-layered silhouettes, detailed shapes, shadows, and environment elements matching "${prompt}".
+- Do NOT include <image> tags or external URLs.`;
+
+      const res = await fetchWithTimeout(
+        `https://generativelanguage.googleapis.com/v1beta/models/${textModel}:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: instruction }] }],
+            generationConfig: { temperature: 0.7 },
+          }),
+        },
+        16000
+      );
+
+      if (!res.ok) continue;
+      const data = await res.json();
+      const rawText: string =
+        data?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text || "").join("\n") || "";
+
+      const matches = rawText.match(/<svg[\s\S]*?<\/svg>/gi) || [];
+      const svgDataUrls: string[] = [];
+
+      for (const rawSvg of matches.slice(0, 3)) {
+        const cleanSvg = rawSvg.includes("xmlns=")
+          ? rawSvg
+          : rawSvg.replace("<svg", '<svg xmlns="http://www.w3.org/2000/svg"');
+        const b64 = Buffer.from(cleanSvg, "utf8").toString("base64");
+        svgDataUrls.push(`data:image/svg+xml;base64,${b64}`);
+      }
+
+      if (svgDataUrls.length > 0) return svgDataUrls;
+    } catch {
+      // Try next text model
+    }
+  }
+  return [];
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const op = searchParams.get("op");
@@ -83,7 +203,7 @@ export async function GET(req: Request) {
   }
 
   try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/${op}?key=${apiKey}`);
+    const res = await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/${op}?key=${apiKey}`);
     const data = await res.json();
 
     if (!res.ok) {
@@ -129,90 +249,64 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Please enter a video prompt first." }, { status: 400 });
     }
 
-    const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || "";
+    const openAiKey = process.env.OPENAI_API_KEY || "";
+    const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || "";
 
-    // 1. Try native Google Veo MP4 if enabled on API key
-    if (apiKey && (model.includes("Veo") || model.includes("Sora") || model.includes("Seedance"))) {
-      for (const veoId of ["veo-3.0-generate-001", "veo-2.0-generate-001"]) {
-        try {
-          const instance: Record<string, unknown> = { prompt };
-          if (imageBase64) {
-            instance.image = {
-              bytesBase64Encoded: imageBase64,
-              mimeType: imageMimeType,
-            };
-          }
-          const veoRes = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/${veoId}:predictLongRunning?key=${apiKey}`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                instances: [instance],
-                parameters: { aspectRatio },
-              }),
-            }
-          );
-          if (veoRes.ok) {
-            const veoData = await veoRes.json();
-            if (veoData?.name) {
-              return NextResponse.json({
-                status: "processing",
-                operationName: veoData.name,
-                engine: `${model} (${veoId})`,
-              });
-            }
-          }
-        } catch {
-          // Fall back to multi-keyframe AI storyboard renderer
-        }
-      }
-    }
-
-    // 2. Generate 3 sequential AI scene keyframes (Start, Mid-Action, Closing Shot)
-    const sceneAngles = [
-      `${prompt}, wide establishing opening shot, dramatic lighting, ultra realistic 4k`,
-      `${prompt}, dynamic mid-action camera movement, close cinematic perspective, rich motion`,
-      `${prompt}, sweeping final angle, golden cinematic atmosphere, sharp details`,
+    const scenePrompts = [
+      `${prompt}, cinematic wide establishing shot, dramatic lighting, ultra detailed 4k`,
+      `${prompt}, dynamic mid-action motion shot, closer camera perspective, rich depth`,
+      `${prompt}, epic closing angle, golden hour atmosphere, crisp focus`,
     ];
 
     const frames: string[] = [];
+    let providerLabel = model;
 
     if (imageBase64) {
       frames.push(`data:${imageMimeType};base64,${imageBase64}`);
     }
 
-    if (apiKey) {
-      for (let i = 0; i < sceneAngles.length && frames.length < 3; i++) {
-        const img = await generateGeminiKeyframe(apiKey, sceneAngles[i], imageBase64, imageMimeType);
-        if (img) frames.push(img);
+    // 1. Primary: OpenAI HD Keyframes when OPENAI_API_KEY is configured
+    if (openAiKey) {
+      for (let i = 0; i < 2 && frames.length < 2; i++) {
+        const oaiImg = await generateOpenAIKeyframe(openAiKey, scenePrompts[i], aspectRatio);
+        if (oaiImg) {
+          frames.push(oaiImg);
+          providerLabel = `${model} • OpenAI HD`;
+        }
       }
     }
 
-    // 3. Guaranteed server-side AI image fallback so the video ALWAYS has real visuals
+    // 2. Secondary: Gemini Raster Image Generation
+    if (geminiKey && frames.length < 2) {
+      for (let i = 0; i < scenePrompts.length && frames.length < 3; i++) {
+        const gemImg = await generateGeminiRasterFrame(geminiKey, scenePrompts[i], imageBase64, imageMimeType);
+        if (gemImg) frames.push(gemImg);
+      }
+    }
+
+    // 3. Guaranteed Gemini SVG Storyboard Scenes fallback
+    if (frames.length < 2 && geminiKey) {
+      const svgScenes = await generateGeminiSvgScenes(geminiKey, prompt, aspectRatio);
+      for (const s of svgScenes) {
+        if (frames.length < 3) frames.push(s);
+      }
+    }
+
     const isPortrait = aspectRatio === "9:16" || aspectRatio === "3:4";
     const imgW = isPortrait ? 576 : 1024;
     const imgH = isPortrait ? 1024 : 576;
-
-    while (frames.length < 2) {
-      const idx = frames.length;
-      const encoded = encodeURIComponent(`${sceneAngles[idx]}`);
-      const seed = Date.now() + idx * 137;
-      const fallbackUrl = `https://image.pollinations.ai/prompt/${encoded}?width=${imgW}&height=${imgH}&seed=${seed}&nologo=true`;
-      const dataUrl = await fetchImageAsDataUrl(fallbackUrl);
-      if (dataUrl) {
-        frames.push(dataUrl);
-      } else {
-        break;
-      }
-    }
+    const directUrls = scenePrompts.map((sp, idx) => {
+      const encoded = encodeURIComponent(sp);
+      return `https://image.pollinations.ai/prompt/${encoded}?width=${imgW}&height=${imgH}&seed=${Date.now() + idx * 97}&nologo=true`;
+    });
 
     return NextResponse.json({
       status: "motion_render",
       frames,
+      directUrls,
       frameDataUrl: frames[0] || "",
       caption: prompt,
-      engine: `${model} • ${mode} (${frames.length} AI Scenes)`,
+      engine: `${providerLabel} • ${mode} (${frames.length} Scenes)`,
       durationSec,
     });
   } catch (err: unknown) {
