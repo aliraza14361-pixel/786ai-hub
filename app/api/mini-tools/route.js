@@ -25,10 +25,28 @@ function isRateLimited(ip) {
     rateMap.set(ip, { count: 1, start: now });
     return false;
   }
-  if (entry.count >= 20) return true;
+  if (entry.count >= 25) return true;
   entry.count += 1;
   rateMap.set(ip, entry);
   return false;
+}
+
+function sanitizeError(msg) {
+  return String(msg || "AI request failed").replace(/key=[^&\s"]+/gi, "key=***");
+}
+
+async function callGemini(modelPath, apiKey, contents) {
+  const cleanPath = modelPath.startsWith("models/") ? modelPath : `models/${modelPath}`;
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/${cleanPath}:generateContent?key=${encodeURIComponent(apiKey)}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contents }),
+    }
+  );
+  const data = await res.json();
+  return { ok: res.ok, status: res.status, data };
 }
 
 export async function POST(req) {
@@ -61,30 +79,47 @@ export async function POST(req) {
       return NextResponse.json({ error: "GEMINI_API_KEY not configured on server." }, { status: 500 });
     }
 
-    const models = ["gemini-2.5-flash", "gemini-flash-latest", "gemini-2.0-flash"];
+    const contents = [{ role: "user", parts: [{ text: buildPrompt(cleanInput) }] }];
+    const candidates = [
+      "gemini-3.0-flash",
+      "gemini-3-flash-preview",
+      "gemini-2.5-flash",
+      "gemini-flash-latest",
+    ];
     let lastError = "Failed to generate response.";
 
-    for (const model of models) {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ role: "user", parts: [{ text: buildPrompt(cleanInput) }] }],
-          }),
-        }
-      );
-      const data = await res.json();
-      if (res.ok) {
-        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "No response generated.";
+    for (const candidate of candidates) {
+      const result = await callGemini(candidate, apiKey, contents);
+      if (result.ok) {
+        const text = result.data?.candidates?.[0]?.content?.parts?.[0]?.text || "No response generated.";
         return NextResponse.json({ text });
       }
-      lastError = data?.error?.message || lastError;
+      lastError = sanitizeError(result.data?.error?.message || lastError);
+    }
+
+    const listRes = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`
+    );
+    const listData = await listRes.json();
+    const available = (listData?.models || []).filter(
+      (m) => Array.isArray(m.supportedGenerationMethods) && m.supportedGenerationMethods.includes("generateContent")
+    );
+    const picked =
+      available.find((m) => m.name.includes("flash") && !m.name.includes("lite")) ||
+      available.find((m) => m.name.includes("gemini")) ||
+      available[0];
+
+    if (picked) {
+      const retry = await callGemini(picked.name, apiKey, contents);
+      if (retry.ok) {
+        const text = retry.data?.candidates?.[0]?.content?.parts?.[0]?.text || "No response generated.";
+        return NextResponse.json({ text });
+      }
+      lastError = sanitizeError(retry.data?.error?.message || lastError);
     }
 
     return NextResponse.json({ error: lastError }, { status: 500 });
   } catch (e) {
-    return NextResponse.json({ error: e?.message || "Server error" }, { status: 500 });
+    return NextResponse.json({ error: sanitizeError(e?.message || "Server error") }, { status: 500 });
   }
 }
