@@ -30,30 +30,22 @@ const SIDEBAR_GROUPS = [
 ];
 
 const ALL_MODELS = [
-  { id: "Seedance 2.0 Mini", badge: "", tag: "Fast", iconBg: "from-indigo-500 to-blue-600", code: "SM", specs: "480p - 720p", desc: "Lightweight high-speed Seedance model for rapid drafts." },
-  { id: "MiniMax H3 Max", badge: "", tag: "Video", iconBg: "from-pink-500 to-purple-600", code: "H3", specs: "480p - 768p • 6-10s", desc: "Expressive motion and cinematic storytelling video engine." },
-  { id: "Music to Video", badge: "", tag: "Audio", iconBg: "from-orange-500 to-red-600", code: "MV", specs: "480p - 720p - 1080p • 4K", desc: "Rhythm-synced visuals generated from music and audio tracks." },
-  { id: "Long Video", badge: "", tag: "Extended", iconBg: "from-blue-500 to-indigo-700", code: "LV", specs: "4-180s • 480p - 720p - 1080p", desc: "Continuous multi-scene video creation for longer stories." },
-  { id: "Seedance 2.5", badge: "HOT", tag: "Audio", iconBg: "from-amber-500 to-orange-600", code: "2.5", specs: "4-30s • Multimodal", desc: "Multimodal video engine with image, video, and audio reference." },
   { id: "Seedance 2.0", badge: "NEW", tag: "Audio", iconBg: "from-amber-400 to-orange-500", code: "S2", specs: "480p - 1080p • 4s - 15s", desc: "Multi-shot video generation with synchronized audio and physics." },
-  { id: "Veo 3", badge: "", tag: "Audio", iconBg: "from-sky-400 to-blue-600", code: "G", specs: "720p - 1080p • 4s - 8s", desc: "Flagship video model with stunning realism and native sound." },
+  { id: "Seedance 2.5", badge: "HOT", tag: "Audio", iconBg: "from-amber-500 to-orange-600", code: "2.5", specs: "4-30s • Multimodal", desc: "Multimodal video engine with image, video, and audio reference." },
   { id: "Veo 3.1", badge: "PRO", tag: "Audio", iconBg: "from-blue-500 to-indigo-600", code: "G", specs: "720p - 1080p • 4s - 8s", desc: "Latest Veo with improved quality, dialogue, and sound effects." },
-  { id: "HappyHorse 1.0", badge: "NEW", tag: "Ref", iconBg: "from-teal-400 to-emerald-600", code: "HH", specs: "720p - 1080p • 5s - 10s", desc: "Multi-mode character animation and dynamic tracking shots." },
+  { id: "Veo 3", badge: "", tag: "Audio", iconBg: "from-sky-400 to-blue-600", code: "G", specs: "720p - 1080p • 4s - 8s", desc: "Flagship video model with stunning realism and native sound." },
   { id: "Sora 2", badge: "NEW", tag: "Audio", iconBg: "from-zinc-300 to-zinc-600", code: "S2", specs: "720p • 4s - 12s", desc: "Enhanced stability, realistic reflections, and world simulation." },
-  { id: "Wan 2.6", badge: "", tag: "V2V", iconBg: "from-violet-500 to-purple-700", code: "W2", specs: "720p - 1080p • 5s - 15s", desc: "Text, image & video to video with flexible camera duration." },
-  { id: "Wan 2.7", badge: "NEW", tag: "Ref", iconBg: "from-purple-500 to-indigo-600", code: "W7", specs: "1080p • 5s - 15s", desc: "Advanced reference-guided video model with high consistency." },
-  { id: "Wan 3.0", badge: "NEW", tag: "Omni", iconBg: "from-fuchsia-500 to-purple-700", code: "W3", specs: "1080p • 5s - 15s", desc: "All-in-one video model with image, video, and audio inputs." },
   { id: "Kling 3.0", badge: "NEW", tag: "Audio", iconBg: "from-emerald-400 to-teal-600", code: "K3", specs: "720p - 1080p • 5s - 15s", desc: "Native audio, multi-shot choreography, and element references." },
   { id: "Kling 2.6", badge: "", tag: "Motion", iconBg: "from-teal-500 to-cyan-700", code: "K2", specs: "720p - 1080p • 5s - 10s", desc: "High-quality video generation with strong motion control." },
+  { id: "Wan 3.0", badge: "NEW", tag: "Omni", iconBg: "from-fuchsia-500 to-purple-700", code: "W3", specs: "1080p • 5s - 15s", desc: "All-in-one video model with image, video, and audio inputs." },
+  { id: "Wan 2.7", badge: "NEW", tag: "Ref", iconBg: "from-purple-500 to-indigo-600", code: "W7", specs: "1080p • 5s - 15s", desc: "Advanced reference-guided video model with high consistency." },
+  { id: "Wan 2.6", badge: "", tag: "V2V", iconBg: "from-violet-500 to-purple-700", code: "W2", specs: "720p - 1080p • 5s - 15s", desc: "Text, image & video to video with flexible camera duration." },
+  { id: "HappyHorse 1.0", badge: "NEW", tag: "Ref", iconBg: "from-teal-400 to-emerald-600", code: "HH", specs: "720p - 1080p • 5s - 10s", desc: "Multi-mode character animation and dynamic tracking shots." },
+  { id: "MiniMax H3 Max", badge: "", tag: "Video", iconBg: "from-pink-500 to-purple-600", code: "H3", specs: "480p - 768p • 6-10s", desc: "Expressive motion and cinematic storytelling video engine." },
+  { id: "Seedance 2.0 Mini", badge: "", tag: "Fast", iconBg: "from-indigo-500 to-blue-600", code: "SM", specs: "480p - 720p", desc: "Lightweight high-speed Seedance model for rapid drafts." },
   { id: "Seedance 1.5 Pro", badge: "PRO", tag: "Audio", iconBg: "from-amber-600 to-yellow-500", code: "1.5", specs: "480p - 1080p • 4s - 12s", desc: "Reliable video model with synchronized audio generation." },
   { id: "GPT Image 2.5", badge: "NEW", tag: "Image", iconBg: "from-emerald-500 to-green-700", code: "GP", specs: "2K - 4K • Reference", desc: "Fast and detailed image generation with multi-image reference." },
-  { id: "GPT Image 2", badge: "NEW", tag: "Image", iconBg: "from-green-500 to-emerald-600", code: "G2", specs: "2K - 4K • Crisp", desc: "High-accuracy visual generation for scenes, ads, and frames." },
-  { id: "Seedream 5 Pro", badge: "NEW", tag: "Image", iconBg: "from-cyan-500 to-blue-600", code: "SD", specs: "2K - 4K • Pro", desc: "Premium image model with sharp lighting and rich detail." },
-  { id: "Seedream 5.0", badge: "", tag: "Image", iconBg: "from-blue-400 to-indigo-600", code: "5.0", specs: "2K - 4K • Studio", desc: "Latest image engine for keyframes and concept visuals." },
-  { id: "Seedream 4.5", badge: "", tag: "Image", iconBg: "from-indigo-400 to-purple-600", code: "4.5", specs: "2K - 4K • Fast", desc: "Versatile image generation for start and end video frames." },
   { id: "Nano Banana 2.1", badge: "NEW", tag: "Edit", iconBg: "from-yellow-400 to-amber-500", code: "G", specs: "Up to 14 Refs", desc: "Generate or edit images with up to 14 visual references." },
-  { id: "Nano Banana 2", badge: "", tag: "Image", iconBg: "from-amber-400 to-orange-500", code: "G", specs: "2K - 4K • Fast", desc: "Next-gen image generation with crisp detail and color." },
-  { id: "Nano Banana", badge: "", tag: "Upscale", iconBg: "from-orange-400 to-amber-600", code: "G", specs: "PRO Upscale", desc: "Ultra-fast image generation and PRO frame upscaling." },
   { id: "Suno V5", badge: "", tag: "Music", iconBg: "from-orange-500 to-rose-600", code: "SV", specs: "Vocals & Score", desc: "Create original songs, melodies, and background soundtracks." },
   { id: "ElevenLabs", badge: "", tag: "Voice", iconBg: "from-zinc-200 to-zinc-400", code: "11", specs: "TTS & Dialogue", desc: "Lifelike AI voice generation, narration, and sound cues." },
 ];
@@ -68,53 +60,25 @@ const AI_TOOLS = [
   { name: "Noise Remover", badge: "NEW", icon: "🧹", desc: "Remove background noise and isolate clean audio from recordings." },
 ];
 
-const WHY_STANDS_OUT = [
-  { icon: "⚡", title: "Optimized Performance", desc: "Fine-tuned for maximum speed and efficiency, delivering results faster than ever." },
-  { icon: "🎛️", title: "User-Friendly Interface", desc: "Intuitive design makes professional video creation accessible to all skill levels." },
-  { icon: "🛡️", title: "Reliable & Secure", desc: "Enterprise-grade reliability ensures your creative process is never interrupted." },
-  { icon: "🎨", title: "Creative Freedom", desc: "Advanced aspect ratio, duration, and resolution controls for every project." },
-  { icon: "🤝", title: "All-in-One Workspace", desc: "Switch between top video, image, music, and voice models in one place." },
-  { icon: "🏆", title: "Professional Quality", desc: "Generate crisp HD & 4K visuals ready for YouTube, Reels, TikTok, and ads." },
-];
+function drawCoverImage(ctx, img, width, height, scale, panX, panY, alpha = 1) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  const imgRatio = img.width / img.height;
+  const canvasRatio = width / height;
+  let drawW = width * scale;
+  let drawH = height * scale;
+  if (imgRatio > canvasRatio) {
+    drawW = drawH * imgRatio;
+  } else {
+    drawH = drawW / imgRatio;
+  }
+  const x = (width - drawW) / 2 + panX;
+  const y = (height - drawH) / 2 + panY;
+  ctx.drawImage(img, x, y, drawW, drawH);
+  ctx.restore();
+}
 
-const TESTIMONIALS = [
-  {
-    name: "Sarah Miller",
-    role: "Content Creator",
-    quote: "786 AI Video revolutionized my content creation process. Having Sora 2, Veo 3.1, and Kling 3.0 in one platform means I can always pick the best look!",
-  },
-  {
-    name: "David Johnson",
-    role: "Marketing Director",
-    quote: "The Image to Video feature is a game-changer for our campaigns. We bring product photos to life with realistic motion in seconds!",
-  },
-  {
-    name: "Emily Chen",
-    role: "Filmmaker",
-    quote: "Accessing multiple AI video models without juggling separate subscriptions saves me both time and money every single week.",
-  },
-];
-
-const FAQS = [
-  {
-    q: "What AI video models does 786 AI Video support?",
-    a: "786 AI Video supports Seedance 2.0, Seedance 2.5, Veo 3.1, Veo 3, Sora 2, Kling 3.0, Wan 2.6, Wan 2.7, Wan 3.0, HappyHorse 1.0, MiniMax H3 Max, and more in one unified workspace.",
-  },
-  {
-    q: "Can I upload a reference image to animate it into a video?",
-    a: "Yes! Click the Reference Content upload box, select an image from your device, describe the motion, and press Generate.",
-  },
-  {
-    q: "What aspect ratios and resolutions are supported?",
-    a: "You can choose 16:9, 9:16, 1:1, 21:9, 4:3, and 3:4 across 480p, 720p, and 1080p presets.",
-  },
-  {
-    q: "Can I download the generated videos for free?",
-    a: "Yes! Once your video finishes rendering in the player, tap Download Video to save it directly to your device.",
-  },
-];
-
-async function renderBrowserMotionVideo({ frameDataUrl, caption, aspectRatio, durationSec }) {
+async function renderBrowserMotionVideo({ frames = [], frameDataUrl, aspectRatio, durationSec }) {
   const isPortrait = aspectRatio === "9:16" || aspectRatio === "3:4";
   const isSquare = aspectRatio === "1:1";
   const width = isPortrait ? 540 : isSquare ? 720 : 960;
@@ -125,15 +89,18 @@ async function renderBrowserMotionVideo({ frameDataUrl, caption, aspectRatio, du
   canvas.height = height;
   const ctx = canvas.getContext("2d");
 
-  let loadedImg = null;
-  if (frameDataUrl) {
-    loadedImg = await new Promise((resolve) => {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => resolve(img);
-      img.onerror = () => resolve(null);
-      img.src = frameDataUrl;
+  const sources = frames.length > 0 ? frames : frameDataUrl ? [frameDataUrl] : [];
+  const loadedImages = [];
+
+  for (const src of sources) {
+    const img = await new Promise((resolve) => {
+      const el = new Image();
+      el.crossOrigin = "anonymous";
+      el.onload = () => resolve(el);
+      el.onerror = () => resolve(null);
+      el.src = src;
     });
+    if (img) loadedImages.push(img);
   }
 
   const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
@@ -147,14 +114,14 @@ async function renderBrowserMotionVideo({ frameDataUrl, caption, aspectRatio, du
   }
 
   const stream = canvas.captureStream(30);
-  const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 2500000 });
+  const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 3000000 });
   const chunks = [];
 
   recorder.ondataavailable = (ev) => {
     if (ev.data && ev.data.size > 0) chunks.push(ev.data);
   };
 
-  const totalFrames = Math.max(120, Math.min(durationSec, 8) * 30);
+  const totalFrames = Math.max(150, Math.min(durationSec, 10) * 30);
 
   return new Promise((resolve) => {
     recorder.onstop = () => {
@@ -170,47 +137,32 @@ async function renderBrowserMotionVideo({ frameDataUrl, caption, aspectRatio, du
       ctx.fillStyle = "#09090b";
       ctx.fillRect(0, 0, width, height);
 
-      if (loadedImg) {
-        const scale = 1 + progress * 0.14;
-        const imgRatio = loadedImg.width / loadedImg.height;
-        const canvasRatio = width / height;
-        let drawW = width * scale;
-        let drawH = height * scale;
-        if (imgRatio > canvasRatio) {
-          drawW = drawH * imgRatio;
-        } else {
-          drawH = drawW / imgRatio;
+      if (loadedImages.length > 0) {
+        const count = loadedImages.length;
+        const scaledPos = progress * count;
+        const idx = Math.min(count - 1, Math.floor(scaledPos));
+        const nextIdx = Math.min(count - 1, idx + 1);
+        const localT = scaledPos - idx;
+
+        const dir = idx % 2 === 0 ? 1 : -1;
+        const scale1 = 1.04 + localT * 0.14;
+        const panX1 = dir * (localT - 0.5) * 36;
+        const panY1 = (localT - 0.5) * 18;
+
+        drawCoverImage(ctx, loadedImages[idx], width, height, scale1, panX1, panY1, 1);
+
+        if (nextIdx !== idx && localT > 0.72) {
+          const fadeAlpha = (localT - 0.72) / 0.28;
+          drawCoverImage(ctx, loadedImages[nextIdx], width, height, 1.04, -dir * -18, -9, fadeAlpha);
         }
-        const offsetX = (width - drawW) / 2 - progress * 18;
-        const offsetY = (height - drawH) / 2 - progress * 10;
-        ctx.drawImage(loadedImg, offsetX, offsetY, drawW, drawH);
       } else {
         const grad = ctx.createLinearGradient(0, 0, width, height);
-        grad.addColorStop(0, "#121216");
-        grad.addColorStop(0.5, "#451a03");
-        grad.addColorStop(1, "#09090b");
+        grad.addColorStop(0, "#0f172a");
+        grad.addColorStop(0.5, "#1d4ed8");
+        grad.addColorStop(1, "#0284c7");
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, width, height);
-
-        const orbX = width * (0.28 + 0.44 * Math.sin(progress * Math.PI));
-        const orbY = height * (0.42 + 0.16 * Math.cos(progress * Math.PI * 2));
-        const radial = ctx.createRadialGradient(orbX, orbY, 10, orbX, orbY, width * 0.45);
-        radial.addColorStop(0, "rgba(245, 158, 11, 0.5)");
-        radial.addColorStop(1, "rgba(245, 158, 11, 0)");
-        ctx.fillStyle = radial;
-        ctx.fillRect(0, 0, width, height);
       }
-
-      const vig = ctx.createLinearGradient(0, height * 0.65, 0, height);
-      vig.addColorStop(0, "rgba(0,0,0,0)");
-      vig.addColorStop(1, "rgba(0,0,0,0.78)");
-      ctx.fillStyle = vig;
-      ctx.fillRect(0, height * 0.65, width, height * 0.35);
-
-      ctx.fillStyle = "#f4f4f5";
-      ctx.font = "14px sans-serif";
-      const shortCap = caption.length > 65 ? caption.slice(0, 65) + "..." : caption;
-      ctx.fillText(shortCap, 20, height - 20);
 
       frame += 1;
       if (frame <= totalFrames) {
@@ -231,7 +183,7 @@ export default function AiVideoClient() {
   const [refTab, setRefTab] = useState("Omni Reference");
   const [aspectRatio, setAspectRatio] = useState("16:9");
   const [duration, setDuration] = useState(5);
-  const [resolution, setResolution] = useState("720p");
+  const [resolution, setResolution] = useState("1080p");
   const [prompt, setPrompt] = useState("");
   const [refPreview, setRefPreview] = useState("");
   const [refBase64, setRefBase64] = useState("");
@@ -242,7 +194,6 @@ export default function AiVideoClient() {
   const [videoUrl, setVideoUrl] = useState("");
   const [engineUsed, setEngineUsed] = useState("");
   const [error, setError] = useState("");
-  const [openFaq, setOpenFaq] = useState(0);
 
   const fileInputRef = useRef(null);
   const pollTimerRef = useRef(null);
@@ -271,13 +222,13 @@ export default function AiVideoClient() {
   function enhancePrompt() {
     if (!prompt.trim()) {
       setPrompt(
-        "Aerial drone shot of an icebreaker ship cutting through frozen Arctic sea ice at golden hour, dramatic shadows, ultra-realistic 4K cinematography"
+        "Cinematic drone shot of a futuristic sports car speeding along a neon-lit coastal highway at sunset, dramatic reflections, ultra-realistic 4K motion"
       );
       return;
     }
     if (!prompt.toLowerCase().includes("cinematic")) {
       setPrompt(
-        `${prompt.trim()}, cinematic 4K lighting, smooth camera tracking, ultra-realistic textures and physics`
+        `${prompt.trim()}, cinematic 4K lighting, smooth dynamic camera motion, ultra-realistic details`
       );
     }
   }
@@ -291,7 +242,7 @@ export default function AiVideoClient() {
     setError("");
     setVideoUrl("");
     setEngineUsed("");
-    setStatusText("Initializing AI video renderer...");
+    setStatusText("Generating AI scenes for your video...");
 
     try {
       const res = await fetch("/api/ai-video", {
@@ -340,10 +291,16 @@ export default function AiVideoClient() {
       }
 
       if (data.status === "motion_render") {
-        setStatusText("Generating AI keyframe & encoding playable video...");
+        setStatusText("Animating AI scenes & encoding playable video...");
+        const initialFrames =
+          Array.isArray(data.frames) && data.frames.length > 0
+            ? data.frames
+            : refPreview
+            ? [refPreview]
+            : [];
         const blobUrl = await renderBrowserMotionVideo({
+          frames: initialFrames,
           frameDataUrl: data.frameDataUrl || refPreview,
-          caption: data.caption || prompt,
           aspectRatio,
           durationSec: data.durationSec || duration,
         });
@@ -376,7 +333,6 @@ export default function AiVideoClient() {
         />
       )}
 
-      {/* Left Studio Sidebar */}
       <aside
         className={`fixed lg:sticky top-0 left-0 z-50 h-screen w-56 bg-[#0e0e11] border-r border-zinc-800/80 flex flex-col transition-transform duration-200 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
@@ -451,7 +407,6 @@ export default function AiVideoClient() {
         </nav>
       </aside>
 
-      {/* Main Content */}
       <div className="flex-1 min-w-0">
         <header className="sticky top-0 z-30 bg-[#0a0a0c]/95 backdrop-blur border-b border-zinc-800/80 px-4 py-2.5 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -481,7 +436,6 @@ export default function AiVideoClient() {
         </header>
 
         <main className="max-w-5xl mx-auto px-4 py-6">
-          {/* 1. Studio Video Generator Box */}
           <section className="rounded-2xl bg-[#131316] border border-zinc-800 p-4 sm:p-5 shadow-2xl mb-10 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -562,7 +516,7 @@ export default function AiVideoClient() {
                   maxLength={2500}
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="Describe the video you want to create..."
+                  placeholder="Describe the video scene you want to create (e.g., A lion walking through a glowing forest at night)..."
                   className="w-full bg-transparent text-xs sm:text-sm text-white placeholder-zinc-500 focus:outline-none resize-none"
                 />
                 <div className="flex items-center justify-between pt-2 border-t border-zinc-800/80 text-[11px] text-zinc-500">
@@ -697,7 +651,6 @@ export default function AiVideoClient() {
             )}
           </section>
 
-          {/* 2. All 26 Models Grid */}
           <section className="mb-10">
             <h2 className="text-base sm:text-lg font-extrabold text-white mb-3.5">Models</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -744,7 +697,6 @@ export default function AiVideoClient() {
             </div>
           </section>
 
-          {/* 3. All 7 AI Tools Grid */}
           <section className="mb-12">
             <h2 className="text-base sm:text-lg font-extrabold text-white mb-3.5">AI Tools</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -773,182 +725,8 @@ export default function AiVideoClient() {
             </div>
           </section>
 
-          {/* 4. Hero & 3-Step Guide */}
-          <section className="text-center max-w-2xl mx-auto mb-12">
-            <h1 className="text-2xl sm:text-4xl font-black text-white">
-              AI Video Generator – Create Videos with Multiple AI Models
-            </h1>
-            <p className="text-xs sm:text-sm text-zinc-400 mt-3 leading-relaxed">
-              786 AI Video brings top AI video generation models together—Sora 2, Veo 3.1, Kling 3.0, Seedance 2.0, and Wan 2.6—all in one unified workspace.
-            </p>
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-4 text-xs font-semibold text-amber-400">
-              <span>⚡ 25+ AI Models</span>
-              <span>🎬 HD &amp; 4K Output</span>
-              <span>🚀 Instant Generation</span>
-            </div>
-          </section>
-
-          <section className="mb-12 text-center">
-            <h2 className="text-xl sm:text-2xl font-extrabold text-white mb-2">
-              How to Use 786 AI Video Generator
-            </h2>
-            <p className="text-xs text-zinc-400 mb-6">
-              Create videos in just three simple steps.
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="rounded-2xl bg-[#131316] border border-zinc-800 p-5">
-                <div className="w-8 h-8 rounded-full bg-amber-500 text-black font-black text-xs flex items-center justify-center mx-auto mb-3">
-                  1
-                </div>
-                <h3 className="font-bold text-sm text-white">Choose Your Input</h3>
-                <p className="text-xs text-zinc-400 mt-1.5 leading-relaxed">
-                  Enter a detailed text description or upload a reference image.
-                </p>
-              </div>
-              <div className="rounded-2xl bg-[#131316] border border-zinc-800 p-5">
-                <div className="w-8 h-8 rounded-full bg-amber-500 text-black font-black text-xs flex items-center justify-center mx-auto mb-3">
-                  2
-                </div>
-                <h3 className="font-bold text-sm text-white">Customize Settings</h3>
-                <p className="text-xs text-zinc-400 mt-1.5 leading-relaxed">
-                  Select your preferred AI model, aspect ratio, duration, and resolution.
-                </p>
-              </div>
-              <div className="rounded-2xl bg-[#131316] border border-zinc-800 p-5">
-                <div className="w-8 h-8 rounded-full bg-amber-500 text-black font-black text-xs flex items-center justify-center mx-auto mb-3">
-                  3
-                </div>
-                <h3 className="font-bold text-sm text-white">Generate &amp; Download</h3>
-                <p className="text-xs text-zinc-400 mt-1.5 leading-relaxed">
-                  Click Generate to render your video and download it in one tap.
-                </p>
-              </div>
-            </div>
-          </section>
-
-          {/* 5. Why 786 AI Stands Out */}
-          <section className="mb-12">
-            <h2 className="text-xl sm:text-2xl font-extrabold text-center text-white mb-6">
-              Why 786 AI Stands Out
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {WHY_STANDS_OUT.map((item) => (
-                <div key={item.title} className="rounded-2xl bg-[#131316] border border-zinc-800 p-5">
-                  <div className="w-9 h-9 rounded-lg bg-amber-500/15 text-amber-400 flex items-center justify-center mb-3">
-                    {item.icon}
-                  </div>
-                  <h3 className="font-bold text-sm text-white mb-1">{item.title}</h3>
-                  <p className="text-xs text-zinc-400 leading-relaxed">{item.desc}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* 6. Testimonials */}
-          <section className="mb-12">
-            <h2 className="text-xl sm:text-2xl font-extrabold text-center text-white mb-6">
-              What Our Users Say
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {TESTIMONIALS.map((t) => (
-                <div key={t.name} className="rounded-2xl bg-[#131316] border border-zinc-800 p-5">
-                  <div className="font-bold text-xs text-white">{t.name}</div>
-                  <div className="text-[11px] text-zinc-400 mb-2">{t.role}</div>
-                  <div className="text-amber-400 text-xs mb-2">★★★★★</div>
-                  <p className="text-xs text-zinc-300 leading-relaxed">&ldquo;{t.quote}&rdquo;</p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* 7. FAQs */}
-          <section className="max-w-3xl mx-auto mb-12">
-            <h2 className="text-xl sm:text-2xl font-extrabold text-center text-white mb-6">
-              Frequently Asked Questions
-            </h2>
-            <div className="space-y-2.5">
-              {FAQS.map((faq, idx) => (
-                <div key={faq.q} className="rounded-xl bg-[#131316] border border-zinc-800 overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => setOpenFaq(openFaq === idx ? -1 : idx)}
-                    className="w-full px-4 py-3.5 text-left flex items-center justify-between text-xs sm:text-sm font-bold text-white"
-                  >
-                    <span>{faq.q}</span>
-                    <span className="text-amber-400 ml-2">{openFaq === idx ? "⌃" : "⌄"}</span>
-                  </button>
-                  {openFaq === idx && (
-                    <div className="px-4 pb-4 pt-2 border-t border-zinc-800/70 text-xs text-zinc-400 leading-relaxed">
-                      {faq.a}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* 8. Bottom Conversion Banner */}
-          <section className="rounded-2xl bg-[#131316] border border-zinc-800 p-6 sm:p-8 text-center mb-12">
-            <h2 className="text-xl sm:text-2xl font-black text-white">
-              Ready to Transform Your Ideas Into Videos?
-            </h2>
-            <p className="text-xs text-zinc-400 mt-2">
-              Start creating videos with 786 AI today—no watermarks, instant workflow.
-            </p>
-            <div className="mt-4">
-              <button
-                type="button"
-                onClick={() => jumpToTop(null, null)}
-                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 text-black font-extrabold text-xs"
-              >
-                Start Creating Now
-              </button>
-            </div>
-          </section>
-
-          {/* 9. Multi-Column Studio Footer */}
-          <footer className="border-t border-zinc-800/80 pt-8 pb-6 text-xs text-zinc-400">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 mb-6">
-              <div>
-                <div className="font-bold text-white mb-2.5">AI Generator</div>
-                <ul className="space-y-1.5">
-                  <li><button type="button" onClick={() => jumpToTop("Text to Video", null)}>AI Video Generator</button></li>
-                  <li><button type="button" onClick={() => jumpToTop("Image to Video", null)}>Image to Video AI</button></li>
-                  <li><button type="button" onClick={() => jumpToTop("Text to Image", null)}>AI Image Generator</button></li>
-                  <li><button type="button" onClick={() => jumpToTop("Music to Video", null)}>Music to Video</button></li>
-                </ul>
-              </div>
-              <div>
-                <div className="font-bold text-white mb-2.5">AI Tools</div>
-                <ul className="space-y-1.5">
-                  <li><button type="button" onClick={() => jumpToTop("Motion Control", null)}>Motion Control</button></li>
-                  <li><button type="button" onClick={() => jumpToTop("Video Extend", null)}>Video Extend</button></li>
-                  <li><button type="button" onClick={() => jumpToTop("AI Avatar", null)}>AI Avatar</button></li>
-                  <li><button type="button" onClick={() => jumpToTop("Noise Remover", null)}>Noise Remover</button></li>
-                </ul>
-              </div>
-              <div>
-                <div className="font-bold text-white mb-2.5">Video Models</div>
-                <ul className="space-y-1.5">
-                  <li><button type="button" onClick={() => jumpToTop(null, "Seedance 2.0")}>Seedance 2.0</button></li>
-                  <li><button type="button" onClick={() => jumpToTop(null, "Veo 3.1")}>Veo 3.1</button></li>
-                  <li><button type="button" onClick={() => jumpToTop(null, "Sora 2")}>Sora 2</button></li>
-                  <li><button type="button" onClick={() => jumpToTop(null, "Kling 3.0")}>Kling 3.0</button></li>
-                </ul>
-              </div>
-              <div>
-                <div className="font-bold text-white mb-2.5">786 AI Hub</div>
-                <ul className="space-y-1.5">
-                  <li><Link href="/">AI Tools Directory</Link></li>
-                  <li><Link href="/mini-tools/hot">Hot AI Mini-Tools</Link></li>
-                  <li><Link href="/studio">786AI Studio</Link></li>
-                  <li><Link href="/blog">AI Guides &amp; Blog</Link></li>
-                </ul>
-              </div>
-            </div>
-            <div className="text-center text-[11px] text-zinc-500">
-              © 2026 786 AI Hub — All rights reserved.
-            </div>
+          <footer className="border-t border-zinc-800/80 pt-6 pb-6 text-center text-[11px] text-zinc-500">
+            © 2026 786 AI Hub — All rights reserved.
           </footer>
         </main>
       </div>
