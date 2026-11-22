@@ -118,7 +118,6 @@ export async function POST(req) {
     const supportedRatio = ["16:9", "9:16"].includes(aspectRatio) ? aspectRatio : "16:9";
     const enrichedPrompt = `${cleanPrompt}. Cinematic ${mode || "Text to Video"} style, smooth camera movement, photorealistic lighting.`;
 
-    // 1. Try Google Veo Real Cloud MP4
     const veoCandidates = ["veo-3.1-generate-preview", "veo-3.0-generate-preview", "veo-2.0-generate-001"];
     for (const veoModel of veoCandidates) {
       const instance = { prompt: enrichedPrompt };
@@ -149,7 +148,6 @@ export async function POST(req) {
       }
     }
 
-    // 2. Auto-Fallback: Generate High-Res AI Keyframe + Motion Video Render
     let frameDataUrl = imageBase64 ? `data:${imageMimeType || "image/png"};base64,${imageBase64}` : "";
 
     if (!frameDataUrl) {
