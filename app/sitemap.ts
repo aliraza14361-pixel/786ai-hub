@@ -22,6 +22,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: baseUrl, lastModified: now, changeFrequency: "daily", priority: 1.0 },
     { url: `${baseUrl}/studio`, lastModified: now, changeFrequency: "daily", priority: 0.9 },
     { url: `${baseUrl}/mini-tools/hot`, lastModified: now, changeFrequency: "daily", priority: 0.9 },
+    { url: `${baseUrl}/ai-video`, lastModified: now, changeFrequency: "daily", priority: 0.9 },
     { url: `${baseUrl}/blog`, lastModified: now, changeFrequency: "weekly", priority: 0.8 },
     { url: `${baseUrl}/llms.txt`, lastModified: now, changeFrequency: "weekly", priority: 0.8 },
   ];

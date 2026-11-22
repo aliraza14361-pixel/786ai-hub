@@ -96,6 +96,7 @@ export default function RootLayout({ children }) {
             <a href="/" style={{ color: "#38bdf8", textDecoration: "none" }}>786Ai Directory</a>
             <a href="/studio" style={{ color: "#38bdf8", textDecoration: "none" }}>786 AI Studio (+25 Free Credits)</a>
         <a href="/mini-tools/hot" style={{ color: "#34d399", textDecoration: "none" }}>Hot AI Mini-Tools</a>
+        <a href="/ai-video" style={{ color: "#fbbf24", textDecoration: "none" }}>786 AI Video Studio</a>
             <a href="/tool/make-com" style={{ color: "#38bdf8", textDecoration: "none" }}>Make.com AI Automation</a>
             <a href="/tool/elevenlabs" style={{ color: "#38bdf8", textDecoration: "none" }}>ElevenLabs AI Voice</a>
             <a href="/blog" style={{ color: "#38bdf8", textDecoration: "none" }}>786Ai Guides &amp; Blog</a>
