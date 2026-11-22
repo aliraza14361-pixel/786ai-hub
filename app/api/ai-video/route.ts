@@ -16,13 +16,14 @@ async function generateOpenAIKeyframe(
   openAiKey: string,
   scenePrompt: string,
   aspectRatio: string
-): Promise<string | null> {
+): Promise<{ image: string | null; error?: string }> {
   const isPortrait = aspectRatio === "9:16" || aspectRatio === "3:4";
   const isSquare = aspectRatio === "1:1";
   const size = isPortrait ? "1024x1536" : isSquare ? "1024x1024" : "1536x1024";
   const dalleSize = isPortrait ? "1024x1792" : isSquare ? "1024x1024" : "1792x1024";
+  let lastError = "";
 
-  // 1. Try gpt-image-1 first
+  // 1. Try gpt-image-1
   try {
     const res = await fetchWithTimeout(
       "https://api.openai.com/v1/images/generations",
@@ -43,16 +44,18 @@ async function generateOpenAIKeyframe(
       20000
     );
 
+    const data = await res.json();
     if (res.ok) {
-      const data = await res.json();
       const b64 = data?.data?.[0]?.b64_json;
-      if (b64) return `data:image/png;base64,${b64}`;
+      if (b64) return { image: `data:image/png;base64,${b64}` };
+    } else {
+      lastError = data?.error?.message || `OpenAI gpt-image-1 HTTP ${res.status}`;
     }
-  } catch {
-    // Fall back to dall-e-3
+  } catch (e: unknown) {
+    lastError = e instanceof Error ? e.message : "OpenAI timeout";
   }
 
-  // 2. Try dall-e-3 with b64_json
+  // 2. Fallback to dall-e-3
   try {
     const res = await fetchWithTimeout(
       "https://api.openai.com/v1/images/generations",
@@ -73,16 +76,18 @@ async function generateOpenAIKeyframe(
       20000
     );
 
+    const data = await res.json();
     if (res.ok) {
-      const data = await res.json();
       const b64 = data?.data?.[0]?.b64_json;
-      if (b64) return `data:image/png;base64,${b64}`;
+      if (b64) return { image: `data:image/png;base64,${b64}` };
+    } else {
+      lastError = data?.error?.message || `OpenAI dall-e-3 HTTP ${res.status}`;
     }
-  } catch {
-    // Fall back to Gemini
+  } catch (e: unknown) {
+    lastError = e instanceof Error ? e.message : "OpenAI dall-e-3 timeout";
   }
 
-  return null;
+  return { image: null, error: lastError };
 }
 
 async function generateGeminiRasterFrame(
@@ -90,8 +95,9 @@ async function generateGeminiRasterFrame(
   scenePrompt: string,
   imageBase64?: string,
   imageMimeType?: string
-): Promise<string | null> {
+): Promise<{ image: string | null; error?: string }> {
   const models = ["gemini-2.5-flash-image", "gemini-2.0-flash-preview-image-generation"];
+  let lastError = "";
 
   for (const modelName of models) {
     try {
@@ -121,20 +127,24 @@ async function generateGeminiRasterFrame(
         14000
       );
 
-      if (!res.ok) continue;
       const data = await res.json();
+      if (!res.ok) {
+        lastError = data?.error?.message || `${modelName} HTTP ${res.status}`;
+        continue;
+      }
+
       const candidateParts = data?.candidates?.[0]?.content?.parts || [];
       for (const part of candidateParts) {
         if (part?.inlineData?.data) {
           const mime = part.inlineData.mimeType || "image/png";
-          return `data:${mime};base64,${part.inlineData.data}`;
+          return { image: `data:${mime};base64,${part.inlineData.data}` };
         }
       }
-    } catch {
-      // Try next model
+    } catch (e: unknown) {
+      lastError = e instanceof Error ? e.message : "Gemini raster error";
     }
   }
-  return null;
+  return { image: null, error: lastError };
 }
 
 async function generateGeminiSvgScenes(
@@ -145,16 +155,13 @@ async function generateGeminiSvgScenes(
   const isPortrait = aspectRatio === "9:16" || aspectRatio === "3:4";
   const vb = isPortrait ? "0 0 720 1280" : "0 0 1280 720";
 
-  for (const textModel of ["gemini-2.5-flash", "gemini-2.5-flash-lite"]) {
+  for (const textModel of ["gemini-2.5-flash", "gemini-2.0-flash"]) {
     try {
-      const instruction = `You are a cinematic storyboard illustrator. Create 3 distinct, richly detailed SVG scene illustrations depicting a 3-shot sequence for: "${prompt}".
-Shot 1: Opening wide establishing shot.
-Shot 2: Dynamic mid-action shot with closer perspective and movement.
-Shot 3: Dramatic closing shot with glowing lighting.
-Rules:
-- Output ONLY 3 complete <svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb}">...</svg> blocks, nothing else.
-- Use rich <defs> linearGradient and radialGradient backgrounds, multi-layered silhouettes, detailed shapes, shadows, and environment elements matching "${prompt}".
-- Do NOT include <image> tags or external URLs.`;
+      const instruction = `Create 3 distinct, richly illustrated cinematic SVG movie frames for the prompt: "${prompt}".
+Shot 1: Wide establishing scene.
+Shot 2: Closer dynamic action angle.
+Shot 3: Dramatic golden-hour closing shot.
+Return a JSON object with a "scenes" array containing 3 complete SVG strings. Each SVG must have xmlns="http://www.w3.org/2000/svg" and viewBox="${vb}", rich <defs> gradients, detailed silhouettes, lighting glows, and environment elements matching "${prompt}".`;
 
       const res = await fetchWithTimeout(
         `https://generativelanguage.googleapis.com/v1beta/models/${textModel}:generateContent?key=${apiKey}`,
@@ -163,7 +170,10 @@ Rules:
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             contents: [{ parts: [{ text: instruction }] }],
-            generationConfig: { temperature: 0.7 },
+            generationConfig: {
+              temperature: 0.7,
+              responseMimeType: "application/json",
+            },
           }),
         },
         16000
@@ -172,17 +182,20 @@ Rules:
       if (!res.ok) continue;
       const data = await res.json();
       const rawText: string =
-        data?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text || "").join("\n") || "";
+        data?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text || "").join("") || "";
 
-      const matches = rawText.match(/<svg[\s\S]*?<\/svg>/gi) || [];
+      const parsed = JSON.parse(rawText);
+      const list: string[] = Array.isArray(parsed?.scenes) ? parsed.scenes : [];
       const svgDataUrls: string[] = [];
 
-      for (const rawSvg of matches.slice(0, 3)) {
-        const cleanSvg = rawSvg.includes("xmlns=")
-          ? rawSvg
-          : rawSvg.replace("<svg", '<svg xmlns="http://www.w3.org/2000/svg"');
-        const b64 = Buffer.from(cleanSvg, "utf8").toString("base64");
-        svgDataUrls.push(`data:image/svg+xml;base64,${b64}`);
+      for (const rawSvg of list.slice(0, 3)) {
+        if (typeof rawSvg === "string" && rawSvg.includes("<svg")) {
+          const cleanSvg = rawSvg.includes("xmlns=")
+            ? rawSvg
+            : rawSvg.replace("<svg", '<svg xmlns="http://www.w3.org/2000/svg"');
+          const b64 = Buffer.from(cleanSvg, "utf8").toString("base64");
+          svgDataUrls.push(`data:image/svg+xml;base64,${b64}`);
+        }
       }
 
       if (svgDataUrls.length > 0) return svgDataUrls;
@@ -193,44 +206,59 @@ Rules:
   return [];
 }
 
-export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const op = searchParams.get("op");
-  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || "";
+function buildLocalCinematicSvgScenes(prompt: string, aspectRatio: string): string[] {
+  const isPortrait = aspectRatio === "9:16" || aspectRatio === "3:4";
+  const w = isPortrait ? 720 : 1280;
+  const h = isPortrait ? 1280 : 720;
+  const lower = prompt.toLowerCase();
 
-  if (!op || !apiKey) {
-    return NextResponse.json({ status: "failed", error: "Missing operation ID or API key." }, { status: 400 });
-  }
+  const isNature = /forest|lion|tiger|jungle|tree|nature|mountain|bird|river/.test(lower);
+  const isCyber = /car|city|neon|cyber|robot|space|future|night/.test(lower);
 
-  try {
-    const res = await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/${op}?key=${apiKey}`);
-    const data = await res.json();
+  const palettes = isNature
+    ? [
+        ["#064e3b", "#059669", "#fbbf24"],
+        ["#022c22", "#047857", "#f59e0b"],
+        ["#14532d", "#15803d", "#fde047"],
+      ]
+    : isCyber
+    ? [
+        ["#090d16", "#1e1b4b", "#38bdf8"],
+        ["#0f172a", "#312e81", "#f43f5e"],
+        ["#020617", "#1d4ed8", "#22d3ee"],
+      ]
+    : [
+        ["#1e1b4b", "#9d174d", "#f59e0b"],
+        ["#172554", "#1d4ed8", "#38bdf8"],
+        ["#311042", "#be123c", "#fde047"],
+      ];
 
-    if (!res.ok) {
-      return NextResponse.json({ status: "failed", error: data?.error?.message || "Failed to check status." }, { status: 500 });
-    }
-
-    if (!data.done) {
-      return NextResponse.json({ status: "processing" });
-    }
-
-    const videoUri =
-      data?.response?.generateVideoResponse?.generatedSamples?.[0]?.video?.uri ||
-      data?.response?.videos?.[0]?.uri;
-
-    if (!videoUri) {
-      return NextResponse.json({ status: "failed", error: "No video returned from model." }, { status: 500 });
-    }
-
-    const sep = videoUri.includes("?") ? "&" : "?";
-    return NextResponse.json({
-      status: "completed",
-      videoUrl: `${videoUri}${sep}key=${apiKey}`,
-    });
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Polling error";
-    return NextResponse.json({ status: "failed", error: msg }, { status: 500 });
-  }
+  return palettes.map(([c1, c2, glow], idx) => {
+    const sunX = Math.round(w * (0.28 + idx * 0.22));
+    const sunY = Math.round(h * (0.42 - idx * 0.04));
+    const shift = idx * 90;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}">
+      <defs>
+        <linearGradient id="sky${idx}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${c1}"/>
+          <stop offset="65%" stop-color="${c2}"/>
+          <stop offset="100%" stop-color="${glow}"/>
+        </linearGradient>
+        <radialGradient id="orb${idx}" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>
+          <stop offset="40%" stop-color="${glow}" stop-opacity="0.65"/>
+          <stop offset="100%" stop-color="${glow}" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      <rect width="${w}" height="${h}" fill="url(#sky${idx})"/>
+      <circle cx="${sunX}" cy="${sunY}" r="${Math.round(w * 0.22)}" fill="url(#orb${idx})"/>
+      <path d="M0 ${Math.round(h * 0.72)} L${Math.round(w * 0.22 - shift * 0.2)} ${Math.round(h * 0.44)} L${Math.round(w * 0.48)} ${Math.round(h * 0.64)} L${Math.round(w * 0.76 + shift * 0.2)} ${Math.round(h * 0.40)} L${w} ${Math.round(h * 0.68)} L${w} ${h} L0 ${h} Z" fill="#09090b" opacity="0.65"/>
+      <path d="M0 ${Math.round(h * 0.8)} Q${Math.round(w * 0.35)} ${Math.round(h * 0.68)} ${Math.round(w * 0.65)} ${Math.round(h * 0.78)} T${w} ${Math.round(h * 0.72)} L${w} ${h} L0 ${h} Z" fill="#050507"/>
+      <circle cx="${Math.round(w * (0.35 + idx * 0.15))}" cy="${Math.round(h * 0.72)}" r="${26 + idx * 6}" fill="${glow}" opacity="0.85"/>
+    </svg>`;
+    const b64 = Buffer.from(svg, "utf8").toString("base64");
+    return `data:image/svg+xml;base64,${b64}`;
+  });
 }
 
 export async function POST(req: Request) {
@@ -250,7 +278,11 @@ export async function POST(req: Request) {
     }
 
     const openAiKey = process.env.OPENAI_API_KEY || "";
-    const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || "";
+    const geminiKey =
+      process.env.GEMINI_API_KEY ||
+      process.env.GOOGLE_API_KEY ||
+      process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
+      "";
 
     const scenePrompts = [
       `${prompt}, cinematic wide establishing shot, dramatic lighting, ultra detailed 4k`,
@@ -259,54 +291,69 @@ export async function POST(req: Request) {
     ];
 
     const frames: string[] = [];
+    const diagnostics: string[] = [];
     let providerLabel = model;
 
     if (imageBase64) {
       frames.push(`data:${imageMimeType};base64,${imageBase64}`);
     }
 
-    // 1. Primary: OpenAI HD Keyframes when OPENAI_API_KEY is configured
+    // 1. Primary: OpenAI HD Keyframes
     if (openAiKey) {
       for (let i = 0; i < 2 && frames.length < 2; i++) {
-        const oaiImg = await generateOpenAIKeyframe(openAiKey, scenePrompts[i], aspectRatio);
-        if (oaiImg) {
-          frames.push(oaiImg);
+        const res = await generateOpenAIKeyframe(openAiKey, scenePrompts[i], aspectRatio);
+        if (res.image) {
+          frames.push(res.image);
           providerLabel = `${model} • OpenAI HD`;
+        } else if (res.error) {
+          diagnostics.push(`OpenAI: ${res.error}`);
+          break;
         }
       }
+    } else {
+      diagnostics.push("OPENAI_API_KEY not loaded in deployment");
     }
 
     // 2. Secondary: Gemini Raster Image Generation
     if (geminiKey && frames.length < 2) {
       for (let i = 0; i < scenePrompts.length && frames.length < 3; i++) {
-        const gemImg = await generateGeminiRasterFrame(geminiKey, scenePrompts[i], imageBase64, imageMimeType);
-        if (gemImg) frames.push(gemImg);
+        const res = await generateGeminiRasterFrame(geminiKey, scenePrompts[i], imageBase64, imageMimeType);
+        if (res.image) {
+          frames.push(res.image);
+          providerLabel = `${model} • Gemini HD`;
+        } else if (res.error) {
+          diagnostics.push(`GeminiImage: ${res.error}`);
+          break;
+        }
       }
+    } else if (!geminiKey) {
+      diagnostics.push("GEMINI_API_KEY not loaded in deployment");
     }
 
-    // 3. Guaranteed Gemini SVG Storyboard Scenes fallback
+    // 3. Tertiary: Gemini JSON-Structured SVG Storyboard
     if (frames.length < 2 && geminiKey) {
       const svgScenes = await generateGeminiSvgScenes(geminiKey, prompt, aspectRatio);
       for (const s of svgScenes) {
         if (frames.length < 3) frames.push(s);
       }
+      if (svgScenes.length > 0) {
+        providerLabel = `${model} • AI Storyboard`;
+      }
     }
 
-    const isPortrait = aspectRatio === "9:16" || aspectRatio === "3:4";
-    const imgW = isPortrait ? 576 : 1024;
-    const imgH = isPortrait ? 1024 : 576;
-    const directUrls = scenePrompts.map((sp, idx) => {
-      const encoded = encodeURIComponent(sp);
-      return `https://image.pollinations.ai/prompt/${encoded}?width=${imgW}&height=${imgH}&seed=${Date.now() + idx * 97}&nologo=true`;
-    });
+    // 4. Guaranteed 3-Scene Fallback (never returns 0 Scenes)
+    if (frames.length === 0) {
+      frames.push(...buildLocalCinematicSvgScenes(prompt, aspectRatio));
+      providerLabel = `${model} • Cinematic Motion`;
+    }
 
     return NextResponse.json({
       status: "motion_render",
       frames,
-      directUrls,
       frameDataUrl: frames[0] || "",
       caption: prompt,
       engine: `${providerLabel} • ${mode} (${frames.length} Scenes)`,
+      diagnostic: diagnostics.join(" | "),
       durationSec,
     });
   } catch (err: unknown) {
