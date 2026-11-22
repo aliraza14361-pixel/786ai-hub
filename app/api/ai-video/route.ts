@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 export const maxDuration = 60;
 
-async function fetchWithTimeout(url: string, init: RequestInit = {}, timeoutMs = 18000): Promise<Response> {
+async function fetchWithTimeout(url: string, init: RequestInit = {}, timeoutMs = 16000): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -12,12 +12,18 @@ async function fetchWithTimeout(url: string, init: RequestInit = {}, timeoutMs =
   }
 }
 
-async function urlToDataUrl(imageUrl: string): Promise<string | null> {
+async function urlToDataUrl(imageUrl: string, timeoutMs = 16000): Promise<string | null> {
   try {
-    const imgRes = await fetchWithTimeout(imageUrl, {}, 15000);
+    const imgRes = await fetchWithTimeout(
+      imageUrl,
+      { headers: { "User-Agent": "Mozilla/5.0 (compatible; 786AIHub/1.0)" } },
+      timeoutMs
+    );
     if (!imgRes.ok) return null;
-    const contentType = imgRes.headers.get("content-type") || "image/png";
+    const contentType = imgRes.headers.get("content-type") || "image/jpeg";
+    if (!contentType.startsWith("image/")) return null;
     const arrayBuf = await imgRes.arrayBuffer();
+    if (arrayBuf.byteLength < 2000) return null;
     const b64 = Buffer.from(arrayBuf).toString("base64");
     return `data:${contentType};base64,${b64}`;
   } catch {
@@ -25,172 +31,117 @@ async function urlToDataUrl(imageUrl: string): Promise<string | null> {
   }
 }
 
-async function generateOpenAIKeyframe(
-  openAiKey: string,
-  scenePrompt: string,
-  aspectRatio: string
-): Promise<{ image: string | null; modelUsed?: string; error?: string }> {
-  const isPortrait = aspectRatio === "9:16" || aspectRatio === "3:4";
-  const isSquare = aspectRatio === "1:1";
-  const gptSize = isPortrait ? "1024x1536" : isSquare ? "1024x1024" : "1536x1024";
-  const dalleSize = isPortrait ? "1024x1792" : isSquare ? "1024x1024" : "1792x1024";
-  const errors: string[] = [];
-
-  const attempts: Array<{ model: string; body: Record<string, unknown> }> = [
-    {
-      model: "gpt-image-1-mini",
-      body: {
-        model: "gpt-image-1-mini",
-        prompt: `Photorealistic cinematic movie frame, ultra detailed 4K, no text watermarks: ${scenePrompt}`,
-        n: 1,
-        size: gptSize,
-      },
-    },
-    {
-      model: "gpt-image-1",
-      body: {
-        model: "gpt-image-1",
-        prompt: `Photorealistic cinematic movie frame, ultra detailed 4K, no text watermarks: ${scenePrompt}`,
-        n: 1,
-        size: gptSize,
-      },
-    },
-    {
-      model: "dall-e-3",
-      body: {
-        model: "dall-e-3",
-        prompt: `Photorealistic cinematic movie frame, ultra detailed 4K, no text watermarks: ${scenePrompt}`,
-        n: 1,
-        size: dalleSize,
-      },
-    },
-  ];
-
-  for (const attempt of attempts) {
-    try {
-      const res = await fetchWithTimeout(
-        "https://api.openai.com/v1/images/generations",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${openAiKey}`,
-          },
-          body: JSON.stringify(attempt.body),
+async function generateFreeHuggingFaceFrame(
+  hfToken: string,
+  scenePrompt: string
+): Promise<string | null> {
+  try {
+    const res = await fetchWithTimeout(
+      "https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${hfToken}`,
+          "Content-Type": "application/json",
         },
-        22000
-      );
-
-      const data = await res.json();
-      if (!res.ok) {
-        errors.push(`${attempt.model}: ${data?.error?.message || `HTTP ${res.status}`}`);
-        continue;
-      }
-
-      const item = data?.data?.[0];
-      if (item?.b64_json) {
-        return {
-          image: `data:image/png;base64,${item.b64_json}`,
-          modelUsed: attempt.model,
-        };
-      }
-      if (item?.url) {
-        const converted = await urlToDataUrl(item.url);
-        if (converted) {
-          return {
-            image: converted,
-            modelUsed: attempt.model,
-          };
-        }
-      }
-    } catch (e: unknown) {
-      errors.push(`${attempt.model}: ${e instanceof Error ? e.message : "timeout"}`);
-    }
+        body: JSON.stringify({
+          inputs: `Photorealistic cinematic movie frame, 4k ultra detailed, no text: ${scenePrompt}`,
+        }),
+      },
+      18000
+    );
+    if (!res.ok) return null;
+    const contentType = res.headers.get("content-type") || "image/jpeg";
+    if (!contentType.startsWith("image/")) return null;
+    const arrayBuf = await res.arrayBuffer();
+    if (arrayBuf.byteLength < 2000) return null;
+    return `data:${contentType};base64,${Buffer.from(arrayBuf).toString("base64")}`;
+  } catch {
+    return null;
   }
-
-  return { image: null, error: errors.join(" ; ") };
 }
 
-async function generateGeminiRasterFrame(
-  apiKey: string,
+async function generateFreeFluxFrame(
   scenePrompt: string,
-  imageBase64?: string,
-  imageMimeType?: string
-): Promise<{ image: string | null; error?: string }> {
-  let lastError = "";
+  aspectRatio: string,
+  seed: number
+): Promise<string | null> {
+  const isPortrait = aspectRatio === "9:16" || aspectRatio === "3:4";
+  const isSquare = aspectRatio === "1:1";
+  const width = isPortrait ? 576 : isSquare ? 768 : 1024;
+  const height = isPortrait ? 1024 : isSquare ? 768 : 576;
+  const encoded = encodeURIComponent(scenePrompt);
 
-  // 1. Try gemini-2.5-flash-image
-  try {
-    const parts: Array<Record<string, unknown>> = [];
-    if (imageBase64) {
-      parts.push({
-        inlineData: {
-          mimeType: imageMimeType || "image/png",
-          data: imageBase64,
+  const endpoints = [
+    `https://image.pollinations.ai/prompt/${encoded}?width=${width}&height=${height}&seed=${seed}&model=flux&nologo=true`,
+    `https://image.pollinations.ai/prompt/${encoded}?width=${width}&height=${height}&seed=${seed + 19}&model=turbo&nologo=true`,
+  ];
+
+  for (const url of endpoints) {
+    const dataUrl = await urlToDataUrl(url, 16000);
+    if (dataUrl) return dataUrl;
+  }
+  return null;
+}
+
+async function generateFreeGeminiSvgScenes(
+  apiKey: string,
+  prompt: string,
+  aspectRatio: string
+): Promise<string[]> {
+  const isPortrait = aspectRatio === "9:16" || aspectRatio === "3:4";
+  const vb = isPortrait ? "0 0 720 1280" : "0 0 1280 720";
+
+  for (const textModel of ["gemini-2.5-flash", "gemini-2.5-flash-lite"]) {
+    try {
+      const instruction = `Create 3 distinct, richly detailed SVG movie storyboard frames depicting: "${prompt}".
+Shot 1: Wide establishing scene.
+Shot 2: Closer dynamic action shot with movement.
+Shot 3: Dramatic golden-hour closing shot.
+Return ONLY valid JSON: {"scenes": ["<svg ...>...</svg>", "<svg ...>...</svg>", "<svg ...>...</svg>"]}.
+Each SVG must include xmlns="http://www.w3.org/2000/svg" and viewBox="${vb}", multi-stop <defs> gradients, detailed foreground subjects matching "${prompt}", shadows, and lighting glows.`;
+
+      const res = await fetchWithTimeout(
+        `https://generativelanguage.googleapis.com/v1beta/models/${textModel}:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: instruction }] }],
+            generationConfig: {
+              temperature: 0.7,
+              responseMimeType: "application/json",
+            },
+          }),
         },
-      });
-    }
-    parts.push({
-      text: `Create a vivid, photorealistic cinematic movie still (no text or watermarks): ${scenePrompt}`,
-    });
+        15000
+      );
 
-    const res = await fetchWithTimeout(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts }],
-          generationConfig: { responseModalities: ["IMAGE"] },
-        }),
-      },
-      15000
-    );
+      if (!res.ok) continue;
+      const data = await res.json();
+      const rawText: string =
+        data?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text || "").join("") || "";
 
-    const data = await res.json();
-    if (res.ok) {
-      const candidateParts = data?.candidates?.[0]?.content?.parts || [];
-      for (const part of candidateParts) {
-        if (part?.inlineData?.data) {
-          const mime = part.inlineData.mimeType || "image/png";
-          return { image: `data:${mime};base64,${part.inlineData.data}` };
+      const parsed = JSON.parse(rawText);
+      const list: string[] = Array.isArray(parsed?.scenes) ? parsed.scenes : [];
+      const svgDataUrls: string[] = [];
+
+      for (const rawSvg of list.slice(0, 3)) {
+        if (typeof rawSvg === "string" && rawSvg.includes("<svg")) {
+          const cleanSvg = rawSvg.includes("xmlns=")
+            ? rawSvg
+            : rawSvg.replace("<svg", '<svg xmlns="http://www.w3.org/2000/svg"');
+          const b64 = Buffer.from(cleanSvg, "utf8").toString("base64");
+          svgDataUrls.push(`data:image/svg+xml;base64,${b64}`);
         }
       }
-    } else {
-      lastError = data?.error?.message || `gemini-2.5-flash-image HTTP ${res.status}`;
+
+      if (svgDataUrls.length > 0) return svgDataUrls;
+    } catch {
+      // Try next free model
     }
-  } catch (e: unknown) {
-    lastError = e instanceof Error ? e.message : "Gemini image error";
   }
-
-  // 2. Try imagen-3.0-generate-002
-  try {
-    const res = await fetchWithTimeout(
-      `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          instances: [{ prompt: `Photorealistic cinematic movie frame: ${scenePrompt}` }],
-          parameters: { sampleCount: 1 },
-        }),
-      },
-      15000
-    );
-
-    const data = await res.json();
-    if (res.ok) {
-      const b64 = data?.predictions?.[0]?.bytesBase64Encoded;
-      const mime = data?.predictions?.[0]?.mimeType || "image/png";
-      if (b64) return { image: `data:${mime};base64,${b64}` };
-    } else {
-      lastError = data?.error?.message || `imagen-3.0 HTTP ${res.status}`;
-    }
-  } catch (e: unknown) {
-    lastError = e instanceof Error ? e.message : "Imagen 3 error";
-  }
-
-  return { image: null, error: lastError };
+  return [];
 }
 
 function buildLocalCinematicSvgScenes(prompt: string, aspectRatio: string): string[] {
@@ -200,24 +151,16 @@ function buildLocalCinematicSvgScenes(prompt: string, aspectRatio: string): stri
   const lower = prompt.toLowerCase();
 
   const isNature = /forest|lion|tiger|jungle|tree|nature|mountain|bird|river/.test(lower);
-  const isCyber = /car|city|neon|cyber|robot|space|future|night/.test(lower);
-
   const palettes = isNature
     ? [
         ["#064e3b", "#059669", "#fbbf24"],
         ["#022c22", "#047857", "#f59e0b"],
         ["#14532d", "#15803d", "#fde047"],
       ]
-    : isCyber
-    ? [
+    : [
         ["#090d16", "#1e1b4b", "#38bdf8"],
         ["#0f172a", "#312e81", "#f43f5e"],
         ["#020617", "#1d4ed8", "#22d3ee"],
-      ]
-    : [
-        ["#1e1b4b", "#9d174d", "#f59e0b"],
-        ["#172554", "#1d4ed8", "#38bdf8"],
-        ["#311042", "#be123c", "#fde047"],
       ];
 
   return palettes.map(([c1, c2, glow], idx) => {
@@ -241,7 +184,6 @@ function buildLocalCinematicSvgScenes(prompt: string, aspectRatio: string): stri
       <circle cx="${sunX}" cy="${sunY}" r="${Math.round(w * 0.22)}" fill="url(#orb${idx})"/>
       <path d="M0 ${Math.round(h * 0.72)} L${Math.round(w * 0.22 - shift * 0.2)} ${Math.round(h * 0.44)} L${Math.round(w * 0.48)} ${Math.round(h * 0.64)} L${Math.round(w * 0.76 + shift * 0.2)} ${Math.round(h * 0.40)} L${w} ${Math.round(h * 0.68)} L${w} ${h} L0 ${h} Z" fill="#09090b" opacity="0.65"/>
       <path d="M0 ${Math.round(h * 0.8)} Q${Math.round(w * 0.35)} ${Math.round(h * 0.68)} ${Math.round(w * 0.65)} ${Math.round(h * 0.78)} T${w} ${Math.round(h * 0.72)} L${w} ${h} L0 ${h} Z" fill="#050507"/>
-      <circle cx="${Math.round(w * (0.35 + idx * 0.15))}" cy="${Math.round(h * 0.72)}" r="${26 + idx * 6}" fill="${glow}" opacity="0.85"/>
     </svg>`;
     const b64 = Buffer.from(svg, "utf8").toString("base64");
     return `data:image/svg+xml;base64,${b64}`;
@@ -264,7 +206,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Please enter a video prompt first." }, { status: 400 });
     }
 
-    const openAiKey = process.env.OPENAI_API_KEY || "";
+    const hfToken = process.env.HF_TOKEN || process.env.HUGGINGFACE_API_KEY || "";
     const geminiKey =
       process.env.GEMINI_API_KEY ||
       process.env.GOOGLE_API_KEY ||
@@ -272,50 +214,61 @@ export async function POST(req: Request) {
       "";
 
     const scenePrompts = [
-      `${prompt}, cinematic wide establishing shot, dramatic lighting, ultra detailed 4k`,
-      `${prompt}, dynamic mid-action motion shot, closer camera perspective, rich depth`,
-      `${prompt}, epic closing angle, golden hour atmosphere, crisp focus`,
+      `${prompt}, cinematic wide establishing shot, dramatic lighting, photorealistic 4k`,
+      `${prompt}, dynamic mid-action motion shot, closer camera angle, ultra detailed`,
+      `${prompt}, epic closing shot, golden hour cinematic glow, sharp focus`,
     ];
 
     const frames: string[] = [];
-    const diagnostics: string[] = [];
     let providerLabel = model;
 
     if (imageBase64) {
       frames.push(`data:${imageMimeType};base64,${imageBase64}`);
     }
 
-    // 1. Primary: OpenAI HD Keyframes (gpt-image-1-mini / gpt-image-1 / dall-e-3)
-    if (openAiKey) {
-      for (let i = 0; i < 2 && frames.length < 2; i++) {
-        const res = await generateOpenAIKeyframe(openAiKey, scenePrompts[i], aspectRatio);
-        if (res.image) {
-          frames.push(res.image);
-          providerLabel = `${model} • OpenAI (${res.modelUsed})`;
-        } else if (res.error) {
-          diagnostics.push(`OpenAI: ${res.error}`);
-          break;
-        }
-      }
-    } else {
-      diagnostics.push("OPENAI_API_KEY missing");
-    }
-
-    // 2. Secondary: Gemini 2.5 Flash Image / Imagen 3
-    if (geminiKey && frames.length < 2) {
-      for (let i = 0; i < scenePrompts.length && frames.length < 3; i++) {
-        const res = await generateGeminiRasterFrame(geminiKey, scenePrompts[i], imageBase64, imageMimeType);
-        if (res.image) {
-          frames.push(res.image);
-          providerLabel = `${model} • Gemini HD`;
-        } else if (res.error) {
-          diagnostics.push(`GeminiImage: ${res.error}`);
-          break;
+    // 1. Free Hugging Face FLUX.1-schnell (if HF_TOKEN is set — 0 cost, no card)
+    if (hfToken && frames.length < 2) {
+      const needed = [0, 1].slice(0, 2 - frames.length);
+      const hfResults = await Promise.all(
+        needed.map((idx) => generateFreeHuggingFaceFrame(hfToken, scenePrompts[idx]))
+      );
+      for (const img of hfResults) {
+        if (img) {
+          frames.push(img);
+          providerLabel = `${model} • Free FLUX HD`;
         }
       }
     }
 
-    // 3. Guaranteed 3-Scene Fallback
+    // 2. Free Keyless Flux / Turbo Photorealistic Keyframes
+    if (frames.length < 2) {
+      const baseSeed = Date.now() % 100000;
+      const needed = [0, 1].slice(0, 2 - frames.length);
+      const fluxResults = await Promise.all(
+        needed.map((idx) =>
+          generateFreeFluxFrame(scenePrompts[idx], aspectRatio, baseSeed + idx * 73)
+        )
+      );
+      for (const img of fluxResults) {
+        if (img) {
+          frames.push(img);
+          providerLabel = `${model} • Free AI HD`;
+        }
+      }
+    }
+
+    // 3. Free Gemini Text-to-Storyboard Scenes
+    if (frames.length < 2 && geminiKey) {
+      const svgScenes = await generateFreeGeminiSvgScenes(geminiKey, prompt, aspectRatio);
+      for (const s of svgScenes) {
+        if (frames.length < 3) frames.push(s);
+      }
+      if (svgScenes.length > 0 && frames.length >= 2) {
+        providerLabel = `${model} • Free AI Storyboard`;
+      }
+    }
+
+    // 4. Guaranteed Instant Fallback
     if (frames.length === 0) {
       frames.push(...buildLocalCinematicSvgScenes(prompt, aspectRatio));
       providerLabel = `${model} • Cinematic Motion`;
@@ -326,8 +279,7 @@ export async function POST(req: Request) {
       frames,
       frameDataUrl: frames[0] || "",
       caption: prompt,
-      engine: `${providerLabel} • ${mode} (${frames.length} Scenes)`,
-      diagnostic: diagnostics.join(" | "),
+      engine: `${providerLabel} • ${mode} (${frames.length} Scenes • 100% Free)`,
       durationSec,
     });
   } catch (err: unknown) {
