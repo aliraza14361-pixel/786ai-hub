@@ -161,23 +161,6 @@ export default function Home() {
               <a href="/studio" className="px-3 py-2 rounded-xl hover:bg-slate-800/80 text-cyan-300 transition">
                 ✨ 786AI Studio
               </a>
-            <a
-              href="/ai-video"
-              onClick={() => setMobileSidebarOpen(false)}
-              className="group flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500/15 to-orange-600/15 hover:from-amber-500/25 hover:to-orange-600/25 border border-amber-500/35 transition"
-            >
-              <div className="flex items-center gap-3">
-                <span className="text-base">🎬</span>
-                <div>
-                  <div className="text-xs font-bold text-amber-300 flex items-center gap-2">
-                    <span>786 AI Video Studio</span>
-                    <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-200 font-extrabold">PRO</span>
-                  </div>
-                  <div className="text-[10px] text-slate-400">Veo 3.1, Sora 2, Kling &amp; Seedance</div>
-                </div>
-              </div>
-              <span className="text-amber-400 text-xs">&gt;</span>
-            </a>
 
             <a href="/mini-tools/hot" className="px-3 py-2 rounded-xl hover:bg-slate-800/80 text-emerald-300 transition">
               🔥 Mini-Tools
@@ -189,6 +172,13 @@ export default function Home() {
                 AI Guides
               </a>
             </nav>
+            <a
+              href="/ai-video"
+              className="lg:hidden inline-flex items-center gap-1.5 px-2.5 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 text-xs font-bold shadow-md transition shrink-0"
+            >
+              <span>🎬</span>
+              <span>AI Video</span>
+            </a>
             <button
               type="button"
               onClick={() => setMobileSidebarOpen(true)}
@@ -273,6 +263,24 @@ export default function Home() {
                     </div>
                     <span className="text-cyan-400 text-xs">›</span>
                   </a>
+            <a
+              href="/ai-video"
+              onClick={() => setMobileSidebarOpen(false)}
+              className="group flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500/15 to-orange-600/15 hover:from-amber-500/25 hover:to-orange-600/25 border border-amber-500/35 transition"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-base">🎬</span>
+                <div>
+                  <div className="text-xs font-bold text-amber-300 flex items-center gap-2">
+                    <span>786 AI Video Studio</span>
+                    <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-200 font-extrabold">PRO</span>
+                  </div>
+                  <div className="text-[10px] text-slate-400">Veo 3.1, Sora 2, Kling &amp; Seedance</div>
+                </div>
+              </div>
+              <span className="text-amber-400 text-xs">&gt;</span>
+            </a>
+
             <a
               href="/mini-tools/hot"
               onClick={() => setMobileSidebarOpen(false)}
