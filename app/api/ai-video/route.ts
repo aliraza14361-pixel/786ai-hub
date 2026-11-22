@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 
 export const maxDuration = 60;
 
-async function fetchWithTimeout(url: string, init: RequestInit = {}, timeoutMs = 16000): Promise<Response> {
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function fetchWithTimeout(url: string, init: RequestInit = {}, timeoutMs = 15000): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -12,7 +14,7 @@ async function fetchWithTimeout(url: string, init: RequestInit = {}, timeoutMs =
   }
 }
 
-async function urlToDataUrl(imageUrl: string, timeoutMs = 16000): Promise<string | null> {
+async function urlToDataUrl(imageUrl: string, timeoutMs = 15000): Promise<string | null> {
   try {
     const imgRes = await fetchWithTimeout(
       imageUrl,
@@ -20,10 +22,10 @@ async function urlToDataUrl(imageUrl: string, timeoutMs = 16000): Promise<string
       timeoutMs
     );
     if (!imgRes.ok) return null;
-    const contentType = imgRes.headers.get("content-type") || "image/jpeg";
+    const contentType = imgRes.headers.get("content-type") || "image/webp";
     if (!contentType.startsWith("image/")) return null;
     const arrayBuf = await imgRes.arrayBuffer();
-    if (arrayBuf.byteLength < 2000) return null;
+    if (arrayBuf.byteLength < 3000) return null;
     const b64 = Buffer.from(arrayBuf).toString("base64");
     return `data:${contentType};base64,${b64}`;
   } catch {
@@ -31,56 +33,79 @@ async function urlToDataUrl(imageUrl: string, timeoutMs = 16000): Promise<string
   }
 }
 
-async function generateFreeHuggingFaceFrame(
-  hfToken: string,
-  scenePrompt: string
-): Promise<string | null> {
-  try {
-    const res = await fetchWithTimeout(
-      "https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${hfToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          inputs: `Photorealistic cinematic movie frame, 4k ultra detailed, no text: ${scenePrompt}`,
-        }),
-      },
-      18000
-    );
-    if (!res.ok) return null;
-    const contentType = res.headers.get("content-type") || "image/jpeg";
-    if (!contentType.startsWith("image/")) return null;
-    const arrayBuf = await res.arrayBuffer();
-    if (arrayBuf.byteLength < 2000) return null;
-    return `data:${contentType};base64,${Buffer.from(arrayBuf).toString("base64")}`;
-  } catch {
-    return null;
-  }
-}
-
-async function generateFreeFluxFrame(
+async function generateFreeAiHordeFrame(
   scenePrompt: string,
-  aspectRatio: string,
-  seed: number
+  aspectRatio: string
 ): Promise<string | null> {
   const isPortrait = aspectRatio === "9:16" || aspectRatio === "3:4";
   const isSquare = aspectRatio === "1:1";
-  const width = isPortrait ? 576 : isSquare ? 768 : 1024;
-  const height = isPortrait ? 1024 : isSquare ? 768 : 576;
-  const encoded = encodeURIComponent(scenePrompt);
+  const width = isPortrait ? 512 : isSquare ? 512 : 768;
+  const height = isPortrait ? 768 : isSquare ? 512 : 512;
 
-  const endpoints = [
-    `https://image.pollinations.ai/prompt/${encoded}?width=${width}&height=${height}&seed=${seed}&model=flux&nologo=true`,
-    `https://image.pollinations.ai/prompt/${encoded}?width=${width}&height=${height}&seed=${seed + 19}&model=turbo&nologo=true`,
-  ];
+  try {
+    const submitRes = await fetchWithTimeout(
+      "https://aihorde.net/api/v2/generate/async",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: "0000000000",
+          "Client-Agent": "786ai-hub:1.0:aliraza",
+        },
+        body: JSON.stringify({
+          prompt: `${scenePrompt}, photorealistic, cinematic lighting, 8k uhd ### blurry, solid blue, watermark, text, logo, distorted`,
+          params: {
+            width,
+            height,
+            steps: 18,
+            cfg_scale: 7,
+            sampler_name: "k_euler_a",
+            n: 1,
+          },
+          nsfw: false,
+          censor_nsfw: true,
+          r2: true,
+        }),
+      },
+      12000
+    );
 
-  for (const url of endpoints) {
-    const dataUrl = await urlToDataUrl(url, 16000);
-    if (dataUrl) return dataUrl;
+    if (!submitRes.ok) return null;
+    const submitData = await submitRes.json();
+    const jobId = submitData?.id;
+    if (!jobId) return null;
+
+    // Poll up to 24 seconds for free worker completion
+    for (let attempt = 0; attempt < 10; attempt++) {
+      await sleep(2400);
+      const checkRes = await fetchWithTimeout(
+        `https://aihorde.net/api/v2/generate/check/${jobId}`,
+        { headers: { "Client-Agent": "786ai-hub:1.0:aliraza" } },
+        8000
+      );
+      if (!checkRes.ok) continue;
+      const checkData = await checkRes.json();
+      if (checkData?.faulted) return null;
+      if (checkData?.done) {
+        const statusRes = await fetchWithTimeout(
+          `https://aihorde.net/api/v2/generate/status/${jobId}`,
+          { headers: { "Client-Agent": "786ai-hub:1.0:aliraza" } },
+          10000
+        );
+        if (!statusRes.ok) return null;
+        const statusData = await statusRes.json();
+        const imgVal: string | undefined = statusData?.generations?.[0]?.img;
+        if (!imgVal) return null;
+        if (imgVal.startsWith("http")) {
+          return await urlToDataUrl(imgVal, 12000);
+        }
+        return `data:image/webp;base64,${imgVal}`;
+      }
+    }
+  } catch {
+    return null;
   }
+
   return null;
 }
 
@@ -94,12 +119,12 @@ async function generateFreeGeminiSvgScenes(
 
   for (const textModel of ["gemini-2.5-flash", "gemini-2.5-flash-lite"]) {
     try {
-      const instruction = `Create 3 distinct, richly detailed SVG movie storyboard frames depicting: "${prompt}".
-Shot 1: Wide establishing scene.
-Shot 2: Closer dynamic action shot with movement.
-Shot 3: Dramatic golden-hour closing shot.
+      const instruction = `Create 3 distinct, richly detailed SVG movie storyboard illustrations depicting: "${prompt}".
+Shot 1: Wide establishing scene with rich scenery and depth.
+Shot 2: Closer dynamic action shot with clear subject silhouettes and highlights.
+Shot 3: Dramatic golden-hour closing shot with warm sunbeams.
 Return ONLY valid JSON: {"scenes": ["<svg ...>...</svg>", "<svg ...>...</svg>", "<svg ...>...</svg>"]}.
-Each SVG must include xmlns="http://www.w3.org/2000/svg" and viewBox="${vb}", multi-stop <defs> gradients, detailed foreground subjects matching "${prompt}", shadows, and lighting glows.`;
+Each SVG must include xmlns="http://www.w3.org/2000/svg" and viewBox="${vb}", multi-stop <defs> gradients, detailed foreground subjects matching "${prompt}", layered hills/trees/structures, and lighting.`;
 
       const res = await fetchWithTimeout(
         `https://generativelanguage.googleapis.com/v1beta/models/${textModel}:generateContent?key=${apiKey}`,
@@ -144,46 +169,43 @@ Each SVG must include xmlns="http://www.w3.org/2000/svg" and viewBox="${vb}", mu
   return [];
 }
 
-function buildLocalCinematicSvgScenes(prompt: string, aspectRatio: string): string[] {
+function buildRichGoldenSunsetScenes(prompt: string, aspectRatio: string): string[] {
   const isPortrait = aspectRatio === "9:16" || aspectRatio === "3:4";
   const w = isPortrait ? 720 : 1280;
   const h = isPortrait ? 1280 : 720;
   const lower = prompt.toLowerCase();
+  const isForest = /forest|lion|tiger|jungle|tree|nature|park|garden|animal/.test(lower);
 
-  const isNature = /forest|lion|tiger|jungle|tree|nature|mountain|bird|river/.test(lower);
-  const palettes = isNature
+  const themes = isForest
     ? [
-        ["#064e3b", "#059669", "#fbbf24"],
-        ["#022c22", "#047857", "#f59e0b"],
-        ["#14532d", "#15803d", "#fde047"],
+        { top: "#052e16", mid: "#15803d", bot: "#f59e0b", sun: "#fef08a" },
+        { top: "#14532d", mid: "#ca8a04", bot: "#fb923c", sun: "#fef9c3" },
+        { top: "#422006", mid: "#b45309", bot: "#fde047", sun: "#ffffff" },
       ]
     : [
-        ["#090d16", "#1e1b4b", "#38bdf8"],
-        ["#0f172a", "#312e81", "#f43f5e"],
-        ["#020617", "#1d4ed8", "#22d3ee"],
+        { top: "#1c1917", mid: "#9a3412", bot: "#f59e0b", sun: "#fef08a" },
+        { top: "#27272a", mid: "#be123c", bot: "#fb923c", sun: "#fde047" },
+        { top: "#18181b", mid: "#b45309", bot: "#facc15", sun: "#ffffff" },
       ];
 
-  return palettes.map(([c1, c2, glow], idx) => {
-    const sunX = Math.round(w * (0.28 + idx * 0.22));
-    const sunY = Math.round(h * (0.42 - idx * 0.04));
-    const shift = idx * 90;
+  return themes.map((t, idx) => {
+    const sunX = Math.round(w * (0.3 + idx * 0.2));
+    const sunY = Math.round(h * (0.46 - idx * 0.04));
+    const treeOffset = idx * 45;
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}">
       <defs>
-        <linearGradient id="sky${idx}" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="${c1}"/>
-          <stop offset="65%" stop-color="${c2}"/>
-          <stop offset="100%" stop-color="${glow}"/>
+        <linearGradient id="bg${idx}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${t.top}"/>
+          <stop offset="58%" stop-color="${t.mid}"/>
+          <stop offset="100%" stop-color="${t.bot}"/>
         </linearGradient>
-        <radialGradient id="orb${idx}" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>
-          <stop offset="40%" stop-color="${glow}" stop-opacity="0.65"/>
-          <stop offset="100%" stop-color="${glow}" stop-opacity="0"/>
-        </radialGradient>
       </defs>
-      <rect width="${w}" height="${h}" fill="url(#sky${idx})"/>
-      <circle cx="${sunX}" cy="${sunY}" r="${Math.round(w * 0.22)}" fill="url(#orb${idx})"/>
-      <path d="M0 ${Math.round(h * 0.72)} L${Math.round(w * 0.22 - shift * 0.2)} ${Math.round(h * 0.44)} L${Math.round(w * 0.48)} ${Math.round(h * 0.64)} L${Math.round(w * 0.76 + shift * 0.2)} ${Math.round(h * 0.40)} L${w} ${Math.round(h * 0.68)} L${w} ${h} L0 ${h} Z" fill="#09090b" opacity="0.65"/>
-      <path d="M0 ${Math.round(h * 0.8)} Q${Math.round(w * 0.35)} ${Math.round(h * 0.68)} ${Math.round(w * 0.65)} ${Math.round(h * 0.78)} T${w} ${Math.round(h * 0.72)} L${w} ${h} L0 ${h} Z" fill="#050507"/>
+      <rect width="${w}" height="${h}" fill="url(#bg${idx})"/>
+      <circle cx="${sunX}" cy="${sunY}" r="${Math.round(w * 0.09)}" fill="${t.sun}" opacity="0.95"/>
+      <polygon points="0,${h} 0,${Math.round(h * 0.68)} ${Math.round(w * 0.25)},${Math.round(h * 0.52)} ${Math.round(w * 0.55)},${Math.round(h * 0.66)} ${Math.round(w * 0.82)},${Math.round(h * 0.48)} ${w},${Math.round(h * 0.65)} ${w},${h}" fill="#18181b" opacity="0.72"/>
+      <polygon points="${Math.round(w * 0.12 - treeOffset)},${Math.round(h * 0.78)} ${Math.round(w * 0.16 - treeOffset)},${Math.round(h * 0.48)} ${Math.round(w * 0.20 - treeOffset)},${Math.round(h * 0.78)}" fill="#09090b"/>
+      <polygon points="${Math.round(w * 0.80 + treeOffset)},${Math.round(h * 0.80)} ${Math.round(w * 0.85 + treeOffset)},${Math.round(h * 0.45)} ${Math.round(w * 0.90 + treeOffset)},${Math.round(h * 0.80)}" fill="#09090b"/>
+      <rect x="0" y="${Math.round(h * 0.75)}" width="${w}" height="${Math.round(h * 0.25)}" fill="#09090b"/>
     </svg>`;
     const b64 = Buffer.from(svg, "utf8").toString("base64");
     return `data:image/svg+xml;base64,${b64}`;
@@ -206,7 +228,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Please enter a video prompt first." }, { status: 400 });
     }
 
-    const hfToken = process.env.HF_TOKEN || process.env.HUGGINGFACE_API_KEY || "";
     const geminiKey =
       process.env.GEMINI_API_KEY ||
       process.env.GOOGLE_API_KEY ||
@@ -214,9 +235,8 @@ export async function POST(req: Request) {
       "";
 
     const scenePrompts = [
-      `${prompt}, cinematic wide establishing shot, dramatic lighting, photorealistic 4k`,
-      `${prompt}, dynamic mid-action motion shot, closer camera angle, ultra detailed`,
-      `${prompt}, epic closing shot, golden hour cinematic glow, sharp focus`,
+      `${prompt}, cinematic wide establishing shot, dramatic golden sunlight`,
+      `${prompt}, dynamic close-up motion shot, crisp focus, ultra detailed`,
     ];
 
     const frames: string[] = [];
@@ -226,51 +246,34 @@ export async function POST(req: Request) {
       frames.push(`data:${imageMimeType};base64,${imageBase64}`);
     }
 
-    // 1. Free Hugging Face FLUX.1-schnell (if HF_TOKEN is set — 0 cost, no card)
-    if (hfToken && frames.length < 2) {
-      const needed = [0, 1].slice(0, 2 - frames.length);
-      const hfResults = await Promise.all(
-        needed.map((idx) => generateFreeHuggingFaceFrame(hfToken, scenePrompts[idx]))
-      );
-      for (const img of hfResults) {
-        if (img) {
-          frames.push(img);
-          providerLabel = `${model} • Free FLUX HD`;
-        }
-      }
-    }
-
-    // 2. Free Keyless Flux / Turbo Photorealistic Keyframes
+    // 1. Free Keyless AI Horde Photorealistic Generator (No Blue Banner, No Billing)
     if (frames.length < 2) {
-      const baseSeed = Date.now() % 100000;
       const needed = [0, 1].slice(0, 2 - frames.length);
-      const fluxResults = await Promise.all(
-        needed.map((idx) =>
-          generateFreeFluxFrame(scenePrompts[idx], aspectRatio, baseSeed + idx * 73)
-        )
+      const hordeResults = await Promise.all(
+        needed.map((idx) => generateFreeAiHordeFrame(scenePrompts[idx], aspectRatio))
       );
-      for (const img of fluxResults) {
+      for (const img of hordeResults) {
         if (img) {
           frames.push(img);
-          providerLabel = `${model} • Free AI HD`;
+          providerLabel = `${model} • Free AI Horde HD`;
         }
       }
     }
 
-    // 3. Free Gemini Text-to-Storyboard Scenes
+    // 2. Free Gemini Storyboard Scenes
     if (frames.length < 2 && geminiKey) {
       const svgScenes = await generateFreeGeminiSvgScenes(geminiKey, prompt, aspectRatio);
       for (const s of svgScenes) {
         if (frames.length < 3) frames.push(s);
       }
       if (svgScenes.length > 0 && frames.length >= 2) {
-        providerLabel = `${model} • Free AI Storyboard`;
+        providerLabel = `${model} • Free Gemini Storyboard`;
       }
     }
 
-    // 4. Guaranteed Instant Fallback
+    // 3. Crisp Golden Landscape Fallback (Never Blue Blur)
     if (frames.length === 0) {
-      frames.push(...buildLocalCinematicSvgScenes(prompt, aspectRatio));
+      frames.push(...buildRichGoldenSunsetScenes(prompt, aspectRatio));
       providerLabel = `${model} • Cinematic Motion`;
     }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
 
 const SIDEBAR_GROUPS = [
@@ -44,10 +44,6 @@ const ALL_MODELS = [
   { id: "MiniMax H3 Max", badge: "", tag: "Video", iconBg: "from-pink-500 to-purple-600", code: "H3", specs: "480p - 768p • 6-10s", desc: "Expressive motion and cinematic storytelling video engine." },
   { id: "Seedance 2.0 Mini", badge: "", tag: "Fast", iconBg: "from-indigo-500 to-blue-600", code: "SM", specs: "480p - 720p", desc: "Lightweight high-speed Seedance model for rapid drafts." },
   { id: "Seedance 1.5 Pro", badge: "PRO", tag: "Audio", iconBg: "from-amber-600 to-yellow-500", code: "1.5", specs: "480p - 1080p • 4s - 12s", desc: "Reliable video model with synchronized audio generation." },
-  { id: "GPT Image 2.5", badge: "NEW", tag: "Image", iconBg: "from-emerald-500 to-green-700", code: "GP", specs: "2K - 4K • Reference", desc: "Fast and detailed image generation with multi-image reference." },
-  { id: "Nano Banana 2.1", badge: "NEW", tag: "Edit", iconBg: "from-yellow-400 to-amber-500", code: "G", specs: "Up to 14 Refs", desc: "Generate or edit images with up to 14 visual references." },
-  { id: "Suno V5", badge: "", tag: "Music", iconBg: "from-orange-500 to-rose-600", code: "SV", specs: "Vocals & Score", desc: "Create original songs, melodies, and background soundtracks." },
-  { id: "ElevenLabs", badge: "", tag: "Voice", iconBg: "from-zinc-200 to-zinc-400", code: "11", specs: "TTS & Dialogue", desc: "Lifelike AI voice generation, narration, and sound cues." },
 ];
 
 const AI_TOOLS = [
@@ -60,10 +56,29 @@ const AI_TOOLS = [
   { name: "Noise Remover", badge: "NEW", icon: "🧹", desc: "Remove background noise and isolate clean audio from recordings." },
 ];
 
+function loadImageElement(src, timeoutMs = 8000) {
+  return new Promise((resolve) => {
+    const el = new Image();
+    el.crossOrigin = "anonymous";
+    const timer = setTimeout(() => resolve(null), timeoutMs);
+    el.onload = () => {
+      clearTimeout(timer);
+      resolve(el.naturalWidth > 0 ? el : null);
+    };
+    el.onerror = () => {
+      clearTimeout(timer);
+      resolve(null);
+    };
+    el.src = src;
+  });
+}
+
 function drawCoverImage(ctx, img, width, height, scale, panX, panY, alpha = 1) {
   ctx.save();
   ctx.globalAlpha = alpha;
-  const imgRatio = img.width / img.height;
+  const imgW = img.naturalWidth || width;
+  const imgH = img.naturalHeight || height;
+  const imgRatio = imgW / imgH;
   const canvasRatio = width / height;
   let drawW = width * scale;
   let drawH = height * scale;
@@ -78,7 +93,7 @@ function drawCoverImage(ctx, img, width, height, scale, panX, panY, alpha = 1) {
   ctx.restore();
 }
 
-async function renderBrowserMotionVideo({ frames = [], frameDataUrl, aspectRatio, durationSec }) {
+async function renderBrowserMotionVideo({ frames = [], caption = "", aspectRatio, durationSec }) {
   const isPortrait = aspectRatio === "9:16" || aspectRatio === "3:4";
   const isSquare = aspectRatio === "1:1";
   const width = isPortrait ? 540 : isSquare ? 720 : 960;
@@ -89,17 +104,9 @@ async function renderBrowserMotionVideo({ frames = [], frameDataUrl, aspectRatio
   canvas.height = height;
   const ctx = canvas.getContext("2d");
 
-  const sources = frames.length > 0 ? frames : frameDataUrl ? [frameDataUrl] : [];
   const loadedImages = [];
-
-  for (const src of sources) {
-    const img = await new Promise((resolve) => {
-      const el = new Image();
-      el.crossOrigin = "anonymous";
-      el.onload = () => resolve(el);
-      el.onerror = () => resolve(null);
-      el.src = src;
-    });
+  for (const src of frames) {
+    const img = await loadImageElement(src, 8000);
     if (img) loadedImages.push(img);
   }
 
@@ -110,7 +117,7 @@ async function renderBrowserMotionVideo({ frames = [], frameDataUrl, aspectRatio
     : "";
 
   if (!mimeType || typeof canvas.captureStream !== "function") {
-    throw new Error("Video encoder unavailable on this browser.");
+    return { blobUrl: "", sceneCount: loadedImages.length };
   }
 
   const stream = canvas.captureStream(30);
@@ -126,7 +133,10 @@ async function renderBrowserMotionVideo({ frames = [], frameDataUrl, aspectRatio
   return new Promise((resolve) => {
     recorder.onstop = () => {
       const blob = new Blob(chunks, { type: "video/webm" });
-      resolve(URL.createObjectURL(blob));
+      resolve({
+        blobUrl: blob.size > 500 ? URL.createObjectURL(blob) : "",
+        sceneCount: loadedImages.length,
+      });
     };
 
     recorder.start();
@@ -156,12 +166,15 @@ async function renderBrowserMotionVideo({ frames = [], frameDataUrl, aspectRatio
           drawCoverImage(ctx, loadedImages[nextIdx], width, height, 1.04, -dir * -18, -9, fadeAlpha);
         }
       } else {
-        const grad = ctx.createLinearGradient(0, 0, width, height);
-        grad.addColorStop(0, "#0f172a");
-        grad.addColorStop(0.5, "#1d4ed8");
-        grad.addColorStop(1, "#0284c7");
-        ctx.fillStyle = grad;
+        const bg = ctx.createLinearGradient(0, 0, 0, height);
+        bg.addColorStop(0, "#18181b");
+        bg.addColorStop(0.55, "#b45309");
+        bg.addColorStop(1, "#f59e0b");
+        ctx.fillStyle = bg;
         ctx.fillRect(0, 0, width, height);
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 20px sans-serif";
+        ctx.fillText(caption.slice(0, 56), 28, height - 32);
       }
 
       frame += 1;
@@ -192,17 +205,11 @@ export default function AiVideoClient() {
   const [loading, setLoading] = useState(false);
   const [statusText, setStatusText] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
+  const [sceneFrames, setSceneFrames] = useState([]);
   const [engineUsed, setEngineUsed] = useState("");
   const [error, setError] = useState("");
 
   const fileInputRef = useRef(null);
-  const pollTimerRef = useRef(null);
-
-  useEffect(() => {
-    return () => {
-      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
-    };
-  }, []);
 
   function handleFileUpload(e) {
     const file = e.target.files?.[0];
@@ -222,14 +229,12 @@ export default function AiVideoClient() {
   function enhancePrompt() {
     if (!prompt.trim()) {
       setPrompt(
-        "Cinematic drone shot of a futuristic sports car speeding along a neon-lit coastal highway at sunset, dramatic reflections, ultra-realistic 4K motion"
+        "A majestic golden lion walking through a sunlit emerald forest, golden rays through trees, ultra-realistic 4K"
       );
       return;
     }
     if (!prompt.toLowerCase().includes("cinematic")) {
-      setPrompt(
-        `${prompt.trim()}, cinematic 4K lighting, smooth dynamic camera motion, ultra-realistic details`
-      );
+      setPrompt(`${prompt.trim()}, cinematic 4K lighting, dynamic camera motion, ultra-realistic details`);
     }
   }
 
@@ -237,12 +242,12 @@ export default function AiVideoClient() {
     e.preventDefault();
     if (!prompt.trim() || loading) return;
 
-    if (pollTimerRef.current) clearInterval(pollTimerRef.current);
     setLoading(true);
     setError("");
     setVideoUrl("");
+    setSceneFrames([]);
     setEngineUsed("");
-    setStatusText("Generating AI scenes for your video...");
+    setStatusText("Generating free photorealistic AI scenes (15-25s)...");
 
     try {
       const res = await fetch("/api/ai-video", {
@@ -267,48 +272,27 @@ export default function AiVideoClient() {
         return;
       }
 
-      if (data.status === "processing" && data.operationName) {
-        setStatusText(`Rendering MP4 video with ${data.engine}...`);
-        pollTimerRef.current = setInterval(async () => {
-          try {
-            const pRes = await fetch(`/api/ai-video?op=${encodeURIComponent(data.operationName)}`);
-            const pData = await pRes.json();
-            if (pData.status === "completed" && pData.videoUrl) {
-              clearInterval(pollTimerRef.current);
-              setVideoUrl(pData.videoUrl);
-              setEngineUsed(data.engine || "Google Veo MP4");
-              setStatusText("");
-              setLoading(false);
-            } else if (pData.status === "failed") {
-              clearInterval(pollTimerRef.current);
-              setError(pData.error || "Cloud video rendering failed.");
-              setStatusText("");
-              setLoading(false);
-            }
-          } catch {}
-        }, 5000);
-        return;
-      }
+      const frames =
+        Array.isArray(data.frames) && data.frames.length > 0
+          ? data.frames
+          : refPreview
+          ? [refPreview]
+          : [];
 
-      if (data.status === "motion_render") {
-        setStatusText("Animating AI scenes & encoding playable video...");
-        const initialFrames =
-          Array.isArray(data.frames) && data.frames.length > 0
-            ? data.frames
-            : refPreview
-            ? [refPreview]
-            : [];
-        const blobUrl = await renderBrowserMotionVideo({
-          frames: initialFrames,
-          frameDataUrl: data.frameDataUrl || refPreview,
-          aspectRatio,
-          durationSec: data.durationSec || duration,
-        });
-        setVideoUrl(blobUrl);
-        setEngineUsed(data.engine || "786 AI Motion Engine");
-        setStatusText("");
-        setLoading(false);
-      }
+      setSceneFrames(frames);
+      setStatusText("Encoding smooth motion video...");
+
+      const rendered = await renderBrowserMotionVideo({
+        frames,
+        caption: prompt,
+        aspectRatio,
+        durationSec: data.durationSec || duration,
+      });
+
+      setVideoUrl(rendered.blobUrl);
+      setEngineUsed(data.engine || `${selectedModel} • ${rendered.sceneCount} Scenes`);
+      setStatusText("");
+      setLoading(false);
     } catch (err) {
       setError(err?.message || "Network error. Please try again.");
       setStatusText("");
@@ -360,6 +344,7 @@ export default function AiVideoClient() {
             onClick={() => {
               setPrompt("");
               setVideoUrl("");
+              setSceneFrames([]);
               setRefPreview("");
               setRefBase64("");
               setSidebarOpen(false);
@@ -450,8 +435,8 @@ export default function AiVideoClient() {
                     </option>
                   ))}
                 </select>
-                <span className="px-1.5 py-0.5 rounded bg-amber-500 text-black font-black text-[10px]">
-                  NEW
+                <span className="px-1.5 py-0.5 rounded bg-emerald-400 text-black font-black text-[10px]">
+                  FREE
                 </span>
               </div>
               <span className="text-[11px] text-zinc-400">
@@ -516,7 +501,7 @@ export default function AiVideoClient() {
                   maxLength={2500}
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="Describe the video scene you want to create (e.g., A lion walking through a glowing forest at night)..."
+                  placeholder="Describe the video scene you want to create..."
                   className="w-full bg-transparent text-xs sm:text-sm text-white placeholder-zinc-500 focus:outline-none resize-none"
                 />
                 <div className="flex items-center justify-between pt-2 border-t border-zinc-800/80 text-[11px] text-zinc-500">
@@ -589,7 +574,7 @@ export default function AiVideoClient() {
               </div>
 
               <div className="flex items-center justify-between pt-1">
-                <span className="text-xs text-zinc-400">Free Unlimited Render</span>
+                <span className="text-xs text-emerald-400 font-semibold">100% Free Unlimited Render</span>
                 <button
                   type="submit"
                   disabled={loading || !prompt.trim()}
@@ -613,30 +598,56 @@ export default function AiVideoClient() {
               </div>
             )}
 
-            {videoUrl && (
-              <div className="pt-4 border-t border-zinc-800 space-y-3">
-                <div className="rounded-2xl overflow-hidden bg-black border border-zinc-800">
-                  <video
-                    src={videoUrl}
-                    controls
-                    autoPlay
-                    loop
-                    playsInline
-                    className="w-full max-h-[440px] object-contain mx-auto"
-                  />
-                </div>
+            {(videoUrl || sceneFrames.length > 0) && (
+              <div className="pt-4 border-t border-zinc-800 space-y-4">
+                {videoUrl ? (
+                  <div className="rounded-2xl overflow-hidden bg-black border border-zinc-800">
+                    <video
+                      src={videoUrl}
+                      controls
+                      autoPlay
+                      loop
+                      playsInline
+                      className="w-full max-h-[440px] object-contain mx-auto"
+                    />
+                  </div>
+                ) : (
+                  sceneFrames[0] && (
+                    <div className="rounded-2xl overflow-hidden bg-black border border-zinc-800">
+                      <img
+                        src={sceneFrames[0]}
+                        alt="Generated Scene"
+                        className="w-full max-h-[440px] object-contain mx-auto"
+                      />
+                    </div>
+                  )
+                )}
+
+                {sceneFrames.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {sceneFrames.map((src, i) => (
+                      <div key={i} className="rounded-xl overflow-hidden border border-zinc-800 bg-zinc-950">
+                        <img src={src} alt={`Scene ${i + 1}`} className="w-full h-24 object-cover" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 <div className="flex flex-wrap items-center justify-center gap-3">
-                  <a
-                    href={videoUrl}
-                    download={`786ai-${selectedModel.toLowerCase().replace(/\s+/g, "-")}.mp4`}
-                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 text-black font-extrabold text-xs shadow-md"
-                  >
-                    ⬇ Download Video
-                  </a>
+                  {videoUrl && (
+                    <a
+                      href={videoUrl}
+                      download={`786ai-${selectedModel.toLowerCase().replace(/\s+/g, "-")}.webm`}
+                      className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 text-black font-extrabold text-xs shadow-md"
+                    >
+                      ⬇ Download Video
+                    </a>
+                  )}
                   <button
                     type="button"
                     onClick={() => {
                       setVideoUrl("");
+                      setSceneFrames([]);
                       setPrompt("");
                     }}
                     className="px-4 py-2.5 rounded-xl bg-zinc-900 border border-zinc-700 text-zinc-200 font-bold text-xs"
